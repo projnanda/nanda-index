@@ -25,19 +25,39 @@ def get_local_ip():
 
 def setup_certificates(domain):
     """Set up SSL certificates using certbot"""
-    cert_dir = os.path.join(os.path.expanduser("~"), "certificates")
-    os.makedirs(cert_dir, exist_ok=True)
-    
-    # Check if certbot is installed
-    if shutil.which("certbot") is None:
-        print("Installing certbot...")
-        subprocess.run(["sudo", "apt-get", "update"])
-        subprocess.run(["sudo", "apt-get", "install", "-y", "certbot"])
-    
-    # Stop any existing registry process that might be using port 80
-    subprocess.run(["sudo", "pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL)
-    
     try:
+        cert_dir = os.path.join(os.path.expanduser("~"), "certificates")
+        print(f"Creating certificate directory at: {cert_dir}")
+        os.makedirs(cert_dir, exist_ok=True)
+        
+        # Check if certbot is installed
+        if shutil.which("certbot") is None:
+            print("Installing certbot...")
+            result = subprocess.run(["sudo", "apt-get", "update"], capture_output=True, text=True)
+            print(f"apt-get update output: {result.stdout}")
+            if result.stderr:
+                print(f"apt-get update errors: {result.stderr}")
+                
+            result = subprocess.run(["sudo", "apt-get", "install", "-y", "certbot"], capture_output=True, text=True)
+            print(f"certbot installation output: {result.stdout}")
+            if result.stderr:
+                print(f"certbot installation errors: {result.stderr}")
+        
+        # Stop any existing registry process that might be using port 80
+        print("Checking for existing processes...")
+        result = subprocess.run(["sudo", "pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL)
+        
+        # Check if port 80 is available
+        print("Checking if port 80 is available...")
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', 80))
+                print("Port 80 is available")
+        except Exception as e:
+            print(f"Port 80 is not available: {e}")
+            print("Please make sure port 80 is free for the certificate challenge")
+            return None
+        
         # Obtain certificate
         print(f"Obtaining SSL certificate for {domain}...")
         result = subprocess.run([
@@ -48,13 +68,20 @@ def setup_certificates(domain):
             "--email", "admin@nanda-registry.com"
         ], capture_output=True, text=True)
         
+        print(f"Certbot output: {result.stdout}")
+        if result.stderr:
+            print(f"Certbot errors: {result.stderr}")
+        
         if result.returncode != 0:
             print(f"Error obtaining certificate: {result.stderr}")
             return None
         
         # Copy certificates to our directory
         cert_path = f"/etc/letsencrypt/live/{domain}"
+        print(f"Looking for certificates in: {cert_path}")
+        
         if os.path.exists(cert_path):
+            print("Found certificate directory, copying certificates...")
             shutil.copy(os.path.join(cert_path, "fullchain.pem"), 
                        os.path.join(cert_dir, "fullchain.pem"))
             shutil.copy(os.path.join(cert_path, "privkey.pem"), 
@@ -64,12 +91,18 @@ def setup_certificates(domain):
             os.chmod(os.path.join(cert_dir, "fullchain.pem"), 0o644)
             os.chmod(os.path.join(cert_dir, "privkey.pem"), 0o600)
             
+            print("Certificates copied successfully")
             return cert_dir
+        else:
+            print(f"Certificate directory not found at: {cert_path}")
+            return None
+            
     except Exception as e:
-        print(f"Error setting up certificates: {e}")
+        print(f"Error in setup_certificates: {str(e)}")
+        import traceback
+        print("Full traceback:")
+        print(traceback.format_exc())
         return None
-    
-    return None
 
 # Global process variables for cleanup
 registry_process = None

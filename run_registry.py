@@ -40,20 +40,45 @@ def check_port_80():
             # Try to stop common web servers
             for service in ['apache2', 'nginx', 'httpd']:
                 try:
+                    # First try systemctl
                     subprocess.run(["sudo", "systemctl", "stop", service], 
                                  stderr=subprocess.DEVNULL)
-                    print(f"Stopped {service}")
+                    print(f"Stopped {service} via systemctl")
+                    
+                    # If it's nginx, also try direct kill
+                    if service == 'nginx':
+                        # Get nginx PIDs
+                        nginx_pids = subprocess.run(
+                            ["pgrep", "nginx"],
+                            capture_output=True,
+                            text=True
+                        )
+                        if nginx_pids.returncode == 0:
+                            for pid in nginx_pids.stdout.strip().split('\n'):
+                                try:
+                                    os.kill(int(pid), signal.SIGTERM)
+                                    print(f"Sent SIGTERM to nginx process {pid}")
+                                except:
+                                    pass
                 except:
                     pass
             
-            # Wait a moment for the port to be released
-            time.sleep(2)
+            # Wait longer for the port to be released
+            print("Waiting for port 80 to be released...")
+            for _ in range(5):  # Try for 5 seconds
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.bind(('', 80))
+                        s.close()
+                        print("Port 80 is now available")
+                        return True
+                except:
+                    time.sleep(1)
+                    continue
             
-            # Check if port is now available
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', 80))
-                s.close()
-                return True
+            # If we get here, port is still in use
+            print("Port 80 is still in use after stopping services")
+            return False
         else:
             print("No process found using port 80")
             return True

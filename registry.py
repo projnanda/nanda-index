@@ -497,16 +497,22 @@ def setup():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', DEFAULT_PORT))
-
-    app.run(
-    ssl_context=(
-        '/home/ec2-user/certificates/fullchain.pem',
-        '/home/ec2-user/certificates/privkey.pem'
-    ), 
-        host='0.0.0.0', 
-        port=port
-    )
-
-    # app.run(ssl_context="adhoc", host='0.0.0.0', port=port)
-    # app.run(host='0.0.0.0', port=port)
+    cert_dir = os.environ.get('CERT_DIR')
+    
+    if cert_dir:
+        cert_path = os.path.join(cert_dir, "fullchain.pem")
+        key_path = os.path.join(cert_dir, "privkey.pem")
+        
+        if os.path.exists(cert_path) and os.path.exists(key_path):
+            app.run(
+                ssl_context=(cert_path, key_path),
+                host='0.0.0.0',
+                port=port
+            )
+        else:
+            print("Certificate files not found. Running without SSL...")
+            app.run(host='0.0.0.0', port=port)
+    else:
+        print("No certificate directory specified. Running without SSL...")
+        app.run(host='0.0.0.0', port=port)
 

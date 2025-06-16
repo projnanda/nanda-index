@@ -7,6 +7,8 @@ import sys
 import signal
 import argparse
 import socket
+import shutil
+from urllib.parse import urlparse
 
 def get_local_ip():
     """Get the local IP address of the system"""
@@ -20,6 +22,54 @@ def get_local_ip():
     except Exception as e:
         print(f"Error getting local IP: {e}")
         return "127.0.0.1"  # Fallback to localhost if we can't determine IP
+
+def setup_certificates(domain):
+    """Set up SSL certificates using certbot"""
+    cert_dir = os.path.join(os.path.expanduser("~"), "certificates")
+    os.makedirs(cert_dir, exist_ok=True)
+    
+    # Check if certbot is installed
+    if shutil.which("certbot") is None:
+        print("Installing certbot...")
+        subprocess.run(["sudo", "apt-get", "update"])
+        subprocess.run(["sudo", "apt-get", "install", "-y", "certbot"])
+    
+    # Stop any existing registry process that might be using port 80
+    subprocess.run(["sudo", "pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL)
+    
+    try:
+        # Obtain certificate
+        print(f"Obtaining SSL certificate for {domain}...")
+        result = subprocess.run([
+            "sudo", "certbot", "certonly", "--standalone",
+            "-d", domain,
+            "--agree-tos",
+            "--non-interactive",
+            "--email", "admin@nanda-registry.com"
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Error obtaining certificate: {result.stderr}")
+            return None
+        
+        # Copy certificates to our directory
+        cert_path = f"/etc/letsencrypt/live/{domain}"
+        if os.path.exists(cert_path):
+            shutil.copy(os.path.join(cert_path, "fullchain.pem"), 
+                       os.path.join(cert_dir, "fullchain.pem"))
+            shutil.copy(os.path.join(cert_path, "privkey.pem"), 
+                       os.path.join(cert_dir, "privkey.pem"))
+            
+            # Set proper permissions
+            os.chmod(os.path.join(cert_dir, "fullchain.pem"), 0o644)
+            os.chmod(os.path.join(cert_dir, "privkey.pem"), 0o600)
+            
+            return cert_dir
+    except Exception as e:
+        print(f"Error setting up certificates: {e}")
+        return None
+    
+    return None
 
 # Global process variables for cleanup
 registry_process = None
@@ -88,6 +138,16 @@ def main():
             print("2. Provide a public URL: --public-url https://your-ngrok-url.app")
             sys.exit(1)
     
+    # Extract domain from URL
+    parsed_url = urlparse(registry_url)
+    domain = parsed_url.netloc.split(':')[0]  # Remove port if present
+    
+    # Set up SSL certificates
+    cert_dir = setup_certificates(domain)
+    if not cert_dir:
+        print("Failed to set up SSL certificates. Running without SSL...")
+        cert_dir = None
+    
     # Save the registry URL to a file
     with open("registry_url.txt", "w") as f:
         f.write(registry_url)
@@ -95,11 +155,15 @@ def main():
     print(f"Registry will be accessible at: {registry_url}")
     print(f"Saved URL to registry_url.txt")
     
-    # Start the registry server
+    # Start the registry server with certificate information
     print(f"Starting registry server on port {registry_port}...")
+    env = {**os.environ, "PORT": str(registry_port)}
+    if cert_dir:
+        env["CERT_DIR"] = cert_dir
+    
     registry_process = subprocess.Popen(
         ["python3", "registry.py"],
-        env={**os.environ, "PORT": str(registry_port)}
+        env=env
     )
     
     print(f"Registry is running at {registry_url}")

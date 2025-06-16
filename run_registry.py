@@ -46,12 +46,32 @@ def setup_certificates(domain):
         # Stop any existing registry process that might be using port 80
         print("Checking for existing processes...")
         try:
-            # First check if any registry processes exist
-            check_process = subprocess.run(["pgrep", "-f", "registry.py"], capture_output=True, text=True)
+            # Get current process ID
+            current_pid = os.getpid()
+            
+            # Check for other registry processes (excluding current process)
+            check_process = subprocess.run(
+                ["pgrep", "-f", "registry.py"], 
+                capture_output=True, 
+                text=True
+            )
+            
             if check_process.returncode == 0:
-                print("Found existing registry processes, stopping them...")
-                subprocess.run(["pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL)
-                print("Existing processes stopped")
+                # Get list of PIDs
+                pids = check_process.stdout.strip().split('\n')
+                # Filter out current process
+                other_pids = [pid for pid in pids if pid and int(pid) != current_pid]
+                
+                if other_pids:
+                    print(f"Found {len(other_pids)} other registry processes, stopping them...")
+                    for pid in other_pids:
+                        try:
+                            os.kill(int(pid), signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass  # Process already gone
+                    print("Other processes stopped")
+                else:
+                    print("No other registry processes found")
             else:
                 print("No existing registry processes found")
         except Exception as e:
@@ -64,6 +84,7 @@ def setup_certificates(domain):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.bind(('', 80))
                 print("Port 80 is available")
+                s.close()  # Explicitly close the socket
         except Exception as e:
             print(f"Port 80 is not available: {e}")
             print("Please make sure port 80 is free for the certificate challenge")
@@ -133,7 +154,11 @@ def cleanup(signum=None, frame=None):
     
     print("Cleaning up processes...")
     if registry_process:
-        registry_process.terminate()
+        try:
+            registry_process.terminate()
+            print("Registry process terminated")
+        except Exception as e:
+            print(f"Error terminating registry process: {e}")
     
     sys.exit(0)
 

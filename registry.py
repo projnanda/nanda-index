@@ -16,21 +16,13 @@ CORS(app)
 
 # File to store the registry
 DEFAULT_PORT = 6900
-#BRIDGE_URL = "http://34.204.70.176"
 
-#CLIENT_PUBLIC_URL = "https://chat.nanda-registry.com"
 
 # --- MongoDB integration (no file fallback) ---
 MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI") 
 
 MONGO_DBNAME = os.getenv("MONGODB_DB", "iot_agents_db")
 
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-# app.config['MAIL_PORT'] = 587
-# app.config['MAIL_USE_TLS'] = True
-# app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email
-# app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your app password
-# mail = Mail(app)
 
 try:
     mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
@@ -43,7 +35,6 @@ try:
 
 
     messages_col = mongo_db["messages"]  # For agent logs
-    
     
     USE_MONGO = True
     print("Connected to MongoDB successfully – using MongoDB for persistence.")
@@ -436,63 +427,6 @@ def setup():
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
 
-# @app.route('/api/send-agent-links', methods=['POST'])
-# def send_agent_links():
-#     data = request.json
-#     email = data.get('email')
-#     agent_ids = data.get('agent_ids', [])  # List of agent IDs
-
-#     if not email or not agent_ids:
-#         return jsonify({'status': 'error', 'message': 'Missing email or agent_ids'}), 400
-
-#     # Validate all agent IDs exist in registry
-#     invalid_agents = [aid for aid in agent_ids if aid not in registry or aid == 'agent_status']
-#     if invalid_agents:
-#         return jsonify({'status': 'error', 'message': f'Invalid agent IDs: {invalid_agents}'}), 400
-
-#     # Generate links for each agent
-#     links = []
-#     for agent_id in agent_ids:
-#         # URL encode the agent ID to handle special characters
-#         encoded_agent_id = urllib.parse.quote(agent_id)
-#         link = f"https://chat.nanda-registry.com/landing.html?agentId={encoded_agent_id}"
-#         links.append(link)
-
-#     # Create email body
-#     email_body = """
-#     Hello,
-
-#     Here are your agent links:
-
-#     {}
-    
-#     Click on any of these links to start chatting with your assigned agent.
-    
-#     Best regards,
-#     NANDA Team
-#     """.format("\n\n".join(links))
-
-#     try:
-#         # Create and send email
-#         msg = Message(
-#             'Your NANDA Agent Links',
-#             sender=app.config['MAIL_USERNAME'],
-#             recipients=[email]
-#         )
-#         msg.body = email_body
-#         mail.send(msg)
-
-#         return jsonify({
-#             'status': 'success',
-#             'message': 'Email sent successfully',
-#             'links': links
-#         })
-
-#     except Exception as e:
-#         return jsonify({
-#             'status': 'error',
-#             'message': f'Failed to send email: {str(e)}'
-#         }), 500
 
 
 if __name__ == '__main__':

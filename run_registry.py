@@ -46,12 +46,17 @@ def setup_certificates(domain):
         # Stop any existing registry process that might be using port 80
         print("Checking for existing processes...")
         try:
-            result = subprocess.run(["pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL, timeout=5)
-            print("Old registry processes killed (if any).")
-        except subprocess.TimeoutExpired:
-            print("Timeout while trying to kill old registry processes.")
+            # First check if any registry processes exist
+            check_process = subprocess.run(["pgrep", "-f", "registry.py"], capture_output=True, text=True)
+            if check_process.returncode == 0:
+                print("Found existing registry processes, stopping them...")
+                subprocess.run(["pkill", "-f", "registry.py"], stderr=subprocess.DEVNULL)
+                print("Existing processes stopped")
+            else:
+                print("No existing registry processes found")
         except Exception as e:
-            print(f"Error while trying to kill old registry: {e}")
+            print(f"Error checking/killing processes: {e}")
+            # Continue anyway as this is not critical
         
         # Check if port 80 is available
         print("Checking if port 80 is available...")

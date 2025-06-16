@@ -23,6 +23,45 @@ def get_local_ip():
         print(f"Error getting local IP: {e}")
         return "127.0.0.1"  # Fallback to localhost if we can't determine IP
 
+def check_port_80():
+    """Check what's using port 80 and try to handle it"""
+    try:
+        # First check what's using port 80
+        result = subprocess.run(
+            ["sudo", "lsof", "-i", ":80"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            print("Process using port 80:")
+            print(result.stdout)
+            
+            # Try to stop common web servers
+            for service in ['apache2', 'nginx', 'httpd']:
+                try:
+                    subprocess.run(["sudo", "systemctl", "stop", service], 
+                                 stderr=subprocess.DEVNULL)
+                    print(f"Stopped {service}")
+                except:
+                    pass
+            
+            # Wait a moment for the port to be released
+            time.sleep(2)
+            
+            # Check if port is now available
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', 80))
+                s.close()
+                return True
+        else:
+            print("No process found using port 80")
+            return True
+            
+    except Exception as e:
+        print(f"Error checking port 80: {e}")
+        return False
+
 def setup_certificates(domain):
     """Set up SSL certificates using certbot"""
     try:
@@ -78,17 +117,14 @@ def setup_certificates(domain):
             print(f"Error checking/killing processes: {e}")
             # Continue anyway as this is not critical
         
-        # Check if port 80 is available
+        # Check if port 80 is available and try to free it
         print("Checking if port 80 is available...")
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', 80))
-                print("Port 80 is available")
-                s.close()  # Explicitly close the socket
-        except Exception as e:
-            print(f"Port 80 is not available: {e}")
-            print("Please make sure port 80 is free for the certificate challenge")
+        if not check_port_80():
+            print("Could not free port 80. Please manually stop any services using port 80.")
+            print("Common services to check: apache2, nginx, httpd")
             return None
+        
+        print("Port 80 is available for certificate challenge")
         
         # Obtain certificate
         print(f"Obtaining SSL certificate for {domain}...")

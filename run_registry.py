@@ -141,12 +141,16 @@ def main():
     # Extract domain from URL
     parsed_url = urlparse(registry_url)
     domain = parsed_url.netloc.split(':')[0]  # Remove port if present
+    print(f"Extracted domain: {domain}")
     
     # Set up SSL certificates
+    print("Setting up SSL certificates...")
     cert_dir = setup_certificates(domain)
     if not cert_dir:
         print("Failed to set up SSL certificates. Running without SSL...")
         cert_dir = None
+    else:
+        print(f"SSL certificates set up successfully in: {cert_dir}")
     
     # Save the registry URL to a file
     with open("registry_url.txt", "w") as f:
@@ -161,18 +165,41 @@ def main():
     if cert_dir:
         env["CERT_DIR"] = cert_dir
     
-    registry_process = subprocess.Popen(
-        ["python3", "registry.py"],
-        env=env
-    )
-    
-    print(f"Registry is running at {registry_url}")
-    print("Press Ctrl+C to stop all processes.")
-    
     try:
+        registry_process = subprocess.Popen(
+            ["python3", "registry.py"],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Check if process started successfully
+        if registry_process.poll() is not None:
+            stdout, stderr = registry_process.communicate()
+            print("Registry process failed to start!")
+            print("STDOUT:", stdout)
+            print("STDERR:", stderr)
+            sys.exit(1)
+            
+        print(f"Registry process started with PID: {registry_process.pid}")
+        print(f"Registry is running at {registry_url}")
+        print("Press Ctrl+C to stop all processes.")
+        
         # Keep running until interrupted
-        registry_process.wait()
+        while True:
+            if registry_process.poll() is not None:
+                stdout, stderr = registry_process.communicate()
+                print("Registry process stopped unexpectedly!")
+                print("STDOUT:", stdout)
+                print("STDERR:", stderr)
+                sys.exit(1)
+            time.sleep(1)
+            
     except KeyboardInterrupt:
+        cleanup()
+    except Exception as e:
+        print(f"Error starting registry: {e}")
         cleanup()
 
 if __name__ == "__main__":

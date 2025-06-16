@@ -82,17 +82,25 @@ def setup_certificates(domain):
         
         if os.path.exists(cert_path):
             print("Found certificate directory, copying certificates...")
-            shutil.copy(os.path.join(cert_path, "fullchain.pem"), 
-                       os.path.join(cert_dir, "fullchain.pem"))
-            shutil.copy(os.path.join(cert_path, "privkey.pem"), 
-                       os.path.join(cert_dir, "privkey.pem"))
-            
-            # Set proper permissions
-            os.chmod(os.path.join(cert_dir, "fullchain.pem"), 0o644)
-            os.chmod(os.path.join(cert_dir, "privkey.pem"), 0o600)
-            
-            print("Certificates copied successfully")
-            return cert_dir
+            try:
+                # Read the actual certificate files (following symlinks)
+                with open(os.path.join(cert_path, "fullchain.pem"), 'rb') as src:
+                    with open(os.path.join(cert_dir, "fullchain.pem"), 'wb') as dst:
+                        dst.write(src.read())
+                
+                with open(os.path.join(cert_path, "privkey.pem"), 'rb') as src:
+                    with open(os.path.join(cert_dir, "privkey.pem"), 'wb') as dst:
+                        dst.write(src.read())
+                
+                # Set proper permissions
+                os.chmod(os.path.join(cert_dir, "fullchain.pem"), 0o644)
+                os.chmod(os.path.join(cert_dir, "privkey.pem"), 0o600)
+                
+                print("Certificates copied successfully")
+                return cert_dir
+            except Exception as e:
+                print(f"Error copying certificates: {e}")
+                return None
         else:
             print(f"Certificate directory not found at: {cert_path}")
             return None

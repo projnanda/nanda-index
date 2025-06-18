@@ -8,7 +8,7 @@ from flask_cors import CORS
 # MongoDB integration
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
-
+from apscheduler.schedulers.background import BackgroundScheduler
 import urllib.parse
 
 app = Flask(__name__)
@@ -427,7 +427,8 @@ def setup():
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
 
-
+# WSGI application for Gunicorn
+app.wsgi_app = app
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', DEFAULT_PORT))

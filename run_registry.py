@@ -252,6 +252,7 @@ def main():
     parser = argparse.ArgumentParser(description="Start a registry server")
     parser.add_argument("--port", type=int, default=6900, help="Registry server port (default: 6900)")
     parser.add_argument("--public-url", help="Manually specify public URL (skips ngrok detection)")
+    parser.add_argument("--use-gunicorn", action="store_true", help="Use Gunicorn instead of Flask development server")
     args = parser.parse_args()
     
     registry_port = args.port
@@ -302,10 +303,22 @@ def main():
     env = {**os.environ, "PORT": str(registry_port)}
     if cert_dir:
         env["CERT_DIR"] = cert_dir
+        print(f"Certificate directory set in environment: {cert_dir}")
     
     try:
+        print("Launching registry process...")
+        
+        if args.use_gunicorn:
+            # Use Gunicorn
+            cmd = ["/opt/nanda-index/venv/bin/gunicorn", "-c", "gunicorn.conf.py", "registry:app"]
+            print("Using Gunicorn server")
+        else:
+            # Use Flask development server
+            cmd = ["python3", "registry.py"]
+            print("Using Flask development server")
+        
         registry_process = subprocess.Popen(
-            ["python3", "registry.py"],
+            cmd,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

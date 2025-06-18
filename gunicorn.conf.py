@@ -18,8 +18,8 @@ max_requests = 1000
 max_requests_jitter = 50
 
 # Logging
-accesslog = "/opt/nanda-index/logs/gunicorn_access.log"
-errorlog = "/opt/nanda-index/logs/gunicorn_error.log"
+accesslog = "/opt/nanda-index/logs/access.log"
+errorlog = "/opt/nanda-index/logs/error.log"
 loglevel = "info"
 
 # Process naming

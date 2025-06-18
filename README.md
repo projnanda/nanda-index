@@ -48,7 +48,6 @@ python3 -m venv venv && source venv/bin/activate
 4. Install dependencies:
 ```bash
 pip install -r requirements.txt
-pip install gunicorn
 ```
 
 5. Set up MongoDB:
@@ -149,6 +148,18 @@ sudo systemctl stop apache2  # if apache is running
 3. Verify port is free:
 ```bash
 sudo netstat -tulpn | grep :80
+```
+
+4. To see errors and logs
+```bash 
+# View access logs
+tail -f /opt/nanda-index/logs/access.log
+
+# View error logs
+tail -f /opt/nanda-index/logs/error.log
+
+# View both logs
+tail -f /opt/nanda-index/logs/*.log
 ```
 
 ### Certificate Issues

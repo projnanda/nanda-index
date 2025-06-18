@@ -248,6 +248,11 @@ def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     
+    # Create logs directory
+    logs_dir = "/opt/nanda-index/logs"
+    os.makedirs(logs_dir, exist_ok=True)
+    print(f"Logs directory created/verified: {logs_dir}")
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Start a registry server")
     parser.add_argument("--port", type=int, default=6900, help="Registry server port (default: 6900)")

@@ -428,8 +428,8 @@ def setup():
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
 
-# WSGI application for Gunicorn
-app.wsgi_app = app
+# # WSGI application for Gunicorn
+# app.wsgi_app = app
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', DEFAULT_PORT))

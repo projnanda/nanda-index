@@ -23,6 +23,7 @@ MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
 
 MONGO_DBNAME = os.getenv("MONGODB_DB", "iot_agents_db")
 
+print(MONGO_DBNAME)
 
 try:
     mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)

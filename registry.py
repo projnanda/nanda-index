@@ -519,7 +519,7 @@ def check_agent_health():
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_agent_health, trigger="interval", minutes=1)
+    scheduler.add_job(func=check_agent_health, trigger="interval", minutes=5)
     scheduler.start()
 
 

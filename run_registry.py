@@ -209,6 +209,14 @@ def setup_certificates(domain):
 registry_process = None
 SERVER_IP = get_local_ip()
 
+    # Create logs directory
+logs_dir = "/opt/nanda-index/logs"
+os.makedirs(logs_dir, exist_ok=True)
+print(f"Logs directory created/verified: {logs_dir}")
+
+log_file_path = "/opt/nanda-index/logs/master.log"
+log_file = open(log_file_path, "a")
+
 def cleanup(signum=None, frame=None):
     """Clean up processes on exit"""
     global registry_process
@@ -220,7 +228,10 @@ def cleanup(signum=None, frame=None):
             print("Registry process terminated")
         except Exception as e:
             print(f"Error terminating registry process: {e}")
-    
+    try:
+        log_file.close()
+    except:
+        pass 
     sys.exit(0)
 
 def get_ngrok_url():
@@ -248,10 +259,6 @@ def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     
-    # Create logs directory
-    logs_dir = "/opt/nanda-index/logs"
-    os.makedirs(logs_dir, exist_ok=True)
-    print(f"Logs directory created/verified: {logs_dir}")
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Start a registry server")
@@ -325,8 +332,8 @@ def main():
         registry_process = subprocess.Popen(
             cmd,
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=log_file,
+            stderr=log_file,
             text=True
         )
         

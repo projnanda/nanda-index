@@ -26,6 +26,7 @@ MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
 
 MONGO_DBNAME = os.getenv("MONGODB_DB", "iot_agents_db")
 
+print(MONGO_URI)
 print(MONGO_DBNAME)
 
 
@@ -37,7 +38,7 @@ try:
     agent_registry_col = mongo_db["agent_registry"]
     client_registry_col = mongo_db["client_registry"]
     users_col = mongo_db["users"]
-
+    delete_agents_col = mongo_db["delete_agents"]  # For deleted agents audit trail
 
     messages_col = mongo_db["messages"]  # For agent logs
     
@@ -153,6 +154,42 @@ def update_agent_status_field(agent_id, field_updates):
     except Exception as e:
         print(f"[registry] Error updating agent {agent_id} fields in MongoDB: {e}")
 
+def update_client_registry_field(client_name, field_updates):
+    """Update specific fields for a specific client in MongoDB.
+    
+    Args:
+        client_name (str): The client name to update
+        field_updates (dict): Dictionary of field names and values to update
+                             Supported fields: 'api_url', 'agent_id'
+    """
+    try:
+        # Update the in-memory client registry first
+        for field, value in field_updates.items():
+            if field == 'api_url':
+                client_registry[client_name] = value
+            elif field == 'agent_id':
+                if 'agent_map' not in client_registry:
+                    client_registry['agent_map'] = {}
+                client_registry['agent_map'][client_name] = value
+        
+        # Prepare update document for MongoDB
+        update_doc = {}
+        for field, value in field_updates.items():
+            update_doc[field] = value
+            
+        result = client_registry_col.update_one(
+            {"client_name": client_name},
+            {"$set": update_doc}
+        )
+        
+        if result.matched_count > 0:
+            print(f"[registry] Updated client {client_name} fields: {list(field_updates.keys())}")
+        else:
+            print(f"[registry] Warning: Client {client_name} not found in MongoDB for field update")
+            
+    except Exception as e:
+        print(f"[registry] Error updating client {client_name} fields in MongoDB: {e}")
+
 # --------------------------------------------------------------------------
 
 @app.route('/api/allocate', methods=['POST'])
@@ -204,25 +241,20 @@ def allocate_agent():
     print(f"Selected Agent URL (bridge): {selected_agent_url}")
     print(f"API URL for client: {api_url}")
     
-    # Assign the agent to this client - store API URL in client registry
-    client_registry[client_name] = api_url  # Store API URL, not agent URL
-    
-    # client-name to agent-id mapping
-    if 'agent_map' not in client_registry:
-        client_registry['agent_map'] = {}
-
-    client_registry['agent_map'][client_name] = selected_agent_id
-
-    save_client_registry()
+    # Assign the agent to this client using targeted updates
+    update_client_registry_field(client_name, {
+        'api_url': api_url,
+        'agent_id': selected_agent_id
+    })
 
     print("Selected Agent ID: ", selected_agent_id)
 
-    # Update agent status to show it's alive and assigned to this client
-    if 'agent_status' in registry and selected_agent_id in registry['agent_status']:
-        registry['agent_status'][selected_agent_id]['alive'] = True
-        registry['agent_status'][selected_agent_id]['assigned_to'] = client_name
-        registry['agent_status'][selected_agent_id]['last_update'] = datetime.now().isoformat()
-        save_registry()
+    # Update agent status using targeted updates
+    update_agent_status_field(selected_agent_id, {
+        'alive': True,
+        'assigned_to': client_name,
+        'last_update': datetime.now().isoformat()
+    })
     
     # Return the assigned agent info
     return jsonify({
@@ -382,19 +414,18 @@ def signup():
     # Remove _id if present (it will be added by MongoDB but not in user_doc here)
     user_doc.pop('_id', None)
 
-    # Assign agent to user in client_registry - store API URL
-    client_registry[username] = api_url  # Store API URL, not agent URL
-    if 'agent_map' not in client_registry:
-        client_registry['agent_map'] = {}
-    client_registry['agent_map'][username] = selected_agent_id
-    save_client_registry()
+    # Assign agent to user using targeted updates
+    update_client_registry_field(username, {
+        'api_url': api_url,
+        'agent_id': selected_agent_id
+    })
 
-    # Update agent status
-    if 'agent_status' in registry and selected_agent_id in registry['agent_status']:
-        registry['agent_status'][selected_agent_id]['alive'] = True
-        registry['agent_status'][selected_agent_id]['assigned_to'] = username
-        registry['agent_status'][selected_agent_id]['last_update'] = datetime.now().isoformat()
-        save_registry()
+    # Update agent status using targeted updates
+    update_agent_status_field(selected_agent_id, {
+        'alive': True,
+        'assigned_to': username,
+        'last_update': datetime.now().isoformat()
+    })
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
 
@@ -448,27 +479,171 @@ def setup():
     # Remove _id if present (it will be added by MongoDB but not in user_doc here) NOT NEEDED IDEALLY
     user_doc.pop('_id', None)
 
-    # Assign agent to user in client_registry - store API URL
-    client_registry[username] = api_url  # Store API URL, not agent URL
-    if 'agent_map' not in client_registry:
-        client_registry['agent_map'] = {}
-    client_registry['agent_map'][username] = user_selected_agent_id
-    save_client_registry()
+    # Assign agent to user using targeted updates
+    update_client_registry_field(username, {
+        'api_url': api_url,
+        'agent_id': user_selected_agent_id
+    })
 
-    # Update agent status
-    if 'agent_status' in registry and user_selected_agent_id in registry['agent_status']:
-        registry['agent_status'][user_selected_agent_id]['alive'] = True
-        registry['agent_status'][user_selected_agent_id]['assigned_to'] = username
-        registry['agent_status'][user_selected_agent_id]['last_update'] = datetime.now().isoformat()
-        save_registry()
+    # Update agent status using targeted updates
+    update_agent_status_field(user_selected_agent_id, {
+        'alive': True,
+        'assigned_to': username,
+        'last_update': datetime.now().isoformat()
+    })
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
+
+def reassign_user_to_new_agent(username):
+    """Reassign an existing user to a new available managed agent"""
+    try:
+        # Find an available managed agent
+        assigned_agent_ids = set()
+        for client, agent_id in client_registry.get('agent_map', {}).items():
+            assigned_agent_ids.add(agent_id)
+        
+        # Find available managed agents
+        available_agents = [aid for aid in registry if aid != 'agent_status' and aid.startswith('agentm') and aid not in assigned_agent_ids]
+        
+        if not available_agents:
+            print(f"[{datetime.now()}] No available managed agents for reassignment of user {username}")
+            return False
+            
+        # Select a random available agent
+        selected_agent_id = random.choice(available_agents)
+        agent_url = registry[selected_agent_id]
+        api_url = registry['agent_status'][selected_agent_id].get('api_url')
+        
+        if not api_url:
+            print(f"[{datetime.now()}] Selected agent {selected_agent_id} has no API URL")
+            return False
+        
+        # Update client registry with new agent info
+        update_client_registry_field(username, {
+            'api_url': api_url,
+            'agent_id': selected_agent_id
+        })
+        
+        # Update agent status
+        update_agent_status_field(selected_agent_id, {
+            'alive': True,
+            'assigned_to': username,
+            'last_update': datetime.now().isoformat()
+        })
+        
+        # Update user in MongoDB
+        try:
+            result = users_col.update_one(
+                {'username': username},
+                {'$set': {
+                    'agent_id': selected_agent_id,
+                    'agent_url': agent_url,
+                    'api_url': api_url
+                }}
+            )
+            
+            if result.matched_count > 0:
+                print(f"[{datetime.now()}] Successfully reassigned user {username} to agent {selected_agent_id}")
+                return True
+            else:
+                print(f"[{datetime.now()}] User {username} not found in users collection")
+                return False
+                
+        except Exception as e:
+            print(f"[{datetime.now()}] Error updating user {username} in MongoDB: {e}")
+            return False
+            
+    except Exception as e:
+        print(f"[{datetime.now()}] Error reassigning user {username}: {e}")
+        return False
+
+def handle_unresponsive_agent(agent_id):
+    """Handle agents that have reached the unresponsive threshold (12 failures)"""
+    print(f"[{datetime.now()}] Agent {agent_id} reached unresponsive threshold, handling cleanup...")
+    
+    try:
+        # Get agent status
+        agent_status = registry.get('agent_status', {}).get(agent_id, {})
+        assigned_user = agent_status.get('assigned_to')
+        
+        if agent_id.startswith('agents'):
+            # Setup agents - delete completely
+            print(f"[{datetime.now()}] Setup agent {agent_id} cleanup - removing completely")
+            
+            # Remove from users collection if assigned
+            if assigned_user:
+                try:
+                    users_col.delete_one({'username': assigned_user})
+                    print(f"[{datetime.now()}] Removed user {assigned_user} from users collection")
+                except Exception as e:
+                    print(f"[{datetime.now()}] Error removing user {assigned_user}: {e}")
+            
+            # Remove from client registry
+            if assigned_user and assigned_user in client_registry:
+                del client_registry[assigned_user]
+                if 'agent_map' in client_registry and assigned_user in client_registry['agent_map']:
+                    del client_registry['agent_map'][assigned_user]
+                save_client_registry()
+                print(f"[{datetime.now()}] Removed {assigned_user} from client registry")
+                
+        elif agent_id.startswith('agentm'):
+            # Managed agents - reassign user to another agent
+            print(f"[{datetime.now()}] Managed agent {agent_id} cleanup - reassigning user {assigned_user}")
+            
+            if assigned_user:
+                # Use the dedicated reassignment function
+                if not reassign_user_to_new_agent(assigned_user):
+                    print(f"[{datetime.now()}] Failed to reassign user {assigned_user}")
+                    # Could optionally remove user here or keep them in a waiting state
+        
+        # Save agent data to delete_agents collection before removal
+        try:
+            # Get complete agent data
+            agent_data = {
+                "agent_id": agent_id,
+                "agent_url": registry.get(agent_id),
+                "deleted_at": datetime.now().isoformat(),
+                "deletion_reason": "unresponsive_threshold_reached",
+                "unresponsive_count": agent_status.get('unresponsive_count', 0),
+                "last_assigned_to": assigned_user,
+                "agent_type": "setup" if agent_id.startswith('agents') else "managed",
+                **agent_status  # Include all status fields
+            }
+            
+            delete_agents_col.insert_one(agent_data)
+            print(f"[{datetime.now()}] Saved agent {agent_id} data to delete_agents collection")
+            
+        except Exception as e:
+            print(f"[{datetime.now()}] Error saving agent {agent_id} to delete_agents collection: {e}")
+        
+        # Remove the unresponsive agent from agent registry (both types)
+        try:
+            # Remove from MongoDB
+            agent_registry_col.delete_one({"agent_id": agent_id})
+            print(f"[{datetime.now()}] Removed agent {agent_id} from MongoDB")
+            
+            # Remove from in-memory registry
+            if agent_id in registry:
+                del registry[agent_id]
+            if 'agent_status' in registry and agent_id in registry['agent_status']:
+                del registry['agent_status'][agent_id]
+            print(f"[{datetime.now()}] Removed agent {agent_id} from memory")
+            
+        except Exception as e:
+            print(f"[{datetime.now()}] Error removing agent {agent_id} from registry: {e}")
+            
+        print(f"[{datetime.now()}] Cleanup completed for agent {agent_id}")
+        
+    except Exception as e:
+        print(f"[{datetime.now()}] Error handling unresponsive agent {agent_id}: {e}")
 
 def check_agent_health():
     print(f"[{datetime.now()}] Running health check...")
     
     # Check health for each agent in the registry
-    for agent_id, bridge_url in registry.items():
+    # Create a copy of registry items to avoid "dictionary changed size during iteration" error
+    registry_items = list(registry.items())
+    for agent_id, bridge_url in registry_items:
         if agent_id == 'agent_status':
             continue
             
@@ -506,6 +681,10 @@ def check_agent_health():
             new_count = current_count + 1
             update_agent_status_field(agent_id, {'unresponsive_count': new_count})
             print(f"[{datetime.now()}] Agent {agent_id} is unresponsive ({e}), unresponsive count: {new_count}")
+            
+            # Check if agent has reached the unresponsive threshold
+            if new_count >= 12:
+                handle_unresponsive_agent(agent_id)
     
     print(f"[{datetime.now()}] Health check completed")
     

@@ -2,3 +2,4 @@ flask
 requests
 flask_cors
 pymongo
+google-auth>=2.30.0

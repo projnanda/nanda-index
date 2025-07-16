@@ -32,7 +32,7 @@ try:
     agent_registry_col = mongo_db["agent_registry"]
     client_registry_col = mongo_db["client_registry"]
     users_col = mongo_db["users"]
-
+    mcp_registry_col = mongo_db["mcp_registry"]  # For MCP server registry
 
     messages_col = mongo_db["messages"]  # For agent logs
     
@@ -427,6 +427,39 @@ def setup():
 
     return jsonify({'status': 'success', 'user': user_doc, 'agent_url': agent_url, 'api_url': api_url})
 
+@app.route('/get_mcp_registry', methods=['GET'])
+def get_mcp_server_details():
+    """
+    Get MCP server details by registry_provider and qualified_name via query parameters
+    """
+    registry_provider = request.args.get('registry_provider')
+    qualified_name = request.args.get('qualified_name')
+    
+    if not registry_provider or not qualified_name:
+        return jsonify({
+            "error": "Missing required query parameters: registry_provider and qualified_name"
+        }), 400
+    
+    try:
+        # Query the mcp_registry collection for the specified registry_provider and qualified_name
+        mcp_doc = mcp_registry_col.find_one({
+            "registry_provider": registry_provider,
+            "qualified_name": qualified_name
+        })
+        
+        if not mcp_doc:
+            return jsonify({
+                "error": f"MCP server not found for registry_provider: {registry_provider}, qualified_name: {qualified_name}"
+            }), 404
+        
+        # Remove MongoDB's _id field from the response
+        if '_id' in mcp_doc:
+            del mcp_doc['_id']
+        
+        return jsonify(mcp_doc)
+        
+    except Exception as e:
+        return jsonify({"error": f"Error retrieving MCP server details: {str(e)}"}), 500
 
 
 if __name__ == '__main__':

@@ -20,6 +20,9 @@ CORS(app)
 # File to store the registry
 DEFAULT_PORT = 6900
 
+# Health check threshold configuration
+HEALTH_CHECK_THRESHOLD = int(os.getenv('HEALTH_CHECK_THRESHOLD', '12'))
+
 
 # --- MongoDB integration (no file fallback) ---
 MONGO_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI") 
@@ -683,7 +686,7 @@ def check_agent_health():
             print(f"[{datetime.now()}] Agent {agent_id} is unresponsive ({e}), unresponsive count: {new_count}")
             
             # Check if agent has reached the unresponsive threshold
-            if new_count >= 12:
+            if new_count >= HEALTH_CHECK_THRESHOLD:
                 handle_unresponsive_agent(agent_id)
     
     print(f"[{datetime.now()}] Health check completed")

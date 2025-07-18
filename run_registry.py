@@ -282,13 +282,21 @@ def main():
     print(f"Extracted domain: {domain}")
     
     # Set up SSL certificates
-    print("Setting up SSL certificates...")
-    cert_dir = setup_certificates(domain)
-    if not cert_dir:
-        print("Failed to set up SSL certificates. Running without SSL...")
-        cert_dir = None
+    cert_dir = os.path.join(os.path.expanduser("~"), "certificates")
+    cert_files_exist = (os.path.exists(os.path.join(cert_dir, "fullchain.pem")) and 
+                       os.path.exists(os.path.join(cert_dir, "privkey.pem")))
+    
+    if cert_files_exist:
+        print(f"SSL certificates already exist in: {cert_dir}")
+        print("Skipping certificate generation...")
     else:
-        print(f"SSL certificates set up successfully in: {cert_dir}")
+        print("Setting up SSL certificates...")
+        cert_dir = setup_certificates(domain)
+        if not cert_dir:
+            print("Failed to set up SSL certificates. Running without SSL...")
+            cert_dir = None
+        else:
+            print(f"SSL certificates set up successfully in: {cert_dir}")
     
     # Save the registry URL to a file
     with open("registry_url.txt", "w") as f:

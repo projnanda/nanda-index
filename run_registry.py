@@ -10,6 +10,45 @@ import socket
 import shutil
 from urllib.parse import urlparse
 
+def get_virtual_env_path():
+    """Dynamically detect the virtual environment path"""
+    # Check if we're in a virtual environment
+    venv_path = os.environ.get('VIRTUAL_ENV')
+    if venv_path:
+        bin_path = os.path.join(venv_path, 'bin')
+        if os.path.exists(bin_path):
+            return bin_path
+    
+    # Check common virtual environment locations
+    common_venv_names = ['venv', 'env', '.venv', '.env', 'jinoos']
+    current_dir = os.getcwd()
+    
+    for venv_name in common_venv_names:
+        venv_dir = os.path.join(current_dir, venv_name)
+        bin_dir = os.path.join(venv_dir, 'bin')
+        if os.path.exists(bin_dir):
+            return bin_dir
+    
+    # If no virtual environment found, return None
+    return None
+
+def find_gunicorn_executable():
+    """Find gunicorn executable, checking virtual environment first, then system"""
+    # First check virtual environment
+    venv_bin_path = get_virtual_env_path()
+    if venv_bin_path:
+        gunicorn_path = os.path.join(venv_bin_path, 'gunicorn')
+        if os.path.exists(gunicorn_path):
+            return gunicorn_path, f"virtual environment ({venv_bin_path})"
+    
+    # Check if gunicorn is available in system PATH
+    import shutil
+    system_gunicorn = shutil.which('gunicorn')
+    if system_gunicorn:
+        return system_gunicorn, "system PATH"
+    
+    return None, None
+
 def get_local_ip():
     """Get the local IP address of the system"""
     try:
@@ -210,11 +249,11 @@ registry_process = None
 SERVER_IP = get_local_ip()
 
     # Create logs directory
-logs_dir = "/opt/nanda-index/logs"
+logs_dir = "logs"
 os.makedirs(logs_dir, exist_ok=True)
 print(f"Logs directory created/verified: {logs_dir}")
 
-log_file_path = "/opt/nanda-index/logs/master.log"
+log_file_path = "logs/master.log"
 log_file = open(log_file_path, "a")
 
 def cleanup(signum=None, frame=None):
@@ -322,8 +361,14 @@ def main():
         
         if args.use_gunicorn:
             # Use Gunicorn
-            cmd = ["/opt/nanda-index/venv/bin/gunicorn", "-c", "gunicorn.conf.py", "registry:app"]
-            print("Using Gunicorn server")
+            gunicorn_path, source_info = find_gunicorn_executable()
+            if gunicorn_path:
+                cmd = [gunicorn_path, "-c", "gunicorn.conf.py", "registry:app"]
+                print(f"Using Gunicorn server from {source_info}: {gunicorn_path}")
+            else:
+                print("ERROR: Gunicorn not found in virtual environment or system PATH!")
+                print("Please install gunicorn:")
+                print("  pip install gunicorn")
         else:
             # Use Flask development server
             cmd = ["python3", "registry.py"]

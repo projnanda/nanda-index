@@ -22,8 +22,12 @@ max_requests = 1000
 max_requests_jitter = 50
 
 # Logging
-accesslog = "/opt/nanda-index/logs/access.log"
-errorlog = "/opt/nanda-index/logs/error.log"
+project_root = os.path.dirname(os.path.abspath(__file__))
+logs_dir = os.path.join(project_root, "logs")
+os.makedirs(logs_dir, exist_ok=True)
+
+accesslog = os.path.join(logs_dir, "access.log")
+errorlog = os.path.join(logs_dir, "error.log")
 loglevel = "info"
 
 # Process naming

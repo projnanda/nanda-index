@@ -1,3 +1,5 @@
 jinoos/
 .env
 
+logs/
+__pycache__

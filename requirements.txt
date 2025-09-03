@@ -1,5 +1,7 @@
-flask
-requests
-flask_cors
-pymongo
+Flask==2.3.3
+Flask-CORS==4.0.0
+pymongo==4.5.0
+requests==2.31.0
+gunicorn==21.2.0
+APScheduler
 google-auth>=2.30.0

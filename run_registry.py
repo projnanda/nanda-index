@@ -10,6 +10,45 @@ import socket
 import shutil
 from urllib.parse import urlparse
 
+def get_virtual_env_path():
+    """Dynamically detect the virtual environment path"""
+    # Check if we're in a virtual environment
+    venv_path = os.environ.get('VIRTUAL_ENV')
+    if venv_path:
+        bin_path = os.path.join(venv_path, 'bin')
+        if os.path.exists(bin_path):
+            return bin_path
+    
+    # Check common virtual environment locations
+    common_venv_names = ['venv', 'env', '.venv', '.env', 'jinoos']
+    current_dir = os.getcwd()
+    
+    for venv_name in common_venv_names:
+        venv_dir = os.path.join(current_dir, venv_name)
+        bin_dir = os.path.join(venv_dir, 'bin')
+        if os.path.exists(bin_dir):
+            return bin_dir
+    
+    # If no virtual environment found, return None
+    return None
+
+def find_gunicorn_executable():
+    """Find gunicorn executable, checking virtual environment first, then system"""
+    # First check virtual environment
+    venv_bin_path = get_virtual_env_path()
+    if venv_bin_path:
+        gunicorn_path = os.path.join(venv_bin_path, 'gunicorn')
+        if os.path.exists(gunicorn_path):
+            return gunicorn_path, f"virtual environment ({venv_bin_path})"
+    
+    # Check if gunicorn is available in system PATH
+    import shutil
+    system_gunicorn = shutil.which('gunicorn')
+    if system_gunicorn:
+        return system_gunicorn, "system PATH"
+    
+    return None, None
+
 def get_local_ip():
     """Get the local IP address of the system"""
     try:
@@ -209,6 +248,14 @@ def setup_certificates(domain):
 registry_process = None
 SERVER_IP = get_local_ip()
 
+    # Create logs directory
+logs_dir = "logs"
+os.makedirs(logs_dir, exist_ok=True)
+print(f"Logs directory created/verified: {logs_dir}")
+
+log_file_path = "logs/master.log"
+log_file = open(log_file_path, "a")
+
 def cleanup(signum=None, frame=None):
     """Clean up processes on exit"""
     global registry_process
@@ -220,7 +267,10 @@ def cleanup(signum=None, frame=None):
             print("Registry process terminated")
         except Exception as e:
             print(f"Error terminating registry process: {e}")
-    
+    try:
+        log_file.close()
+    except:
+        pass 
     sys.exit(0)
 
 def get_ngrok_url():
@@ -248,10 +298,12 @@ def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
     
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Start a registry server")
     parser.add_argument("--port", type=int, default=6900, help="Registry server port (default: 6900)")
     parser.add_argument("--public-url", help="Manually specify public URL (skips ngrok detection)")
+    parser.add_argument("--use-gunicorn", action="store_true", help="Use Gunicorn instead of Flask development server")
     args = parser.parse_args()
     
     registry_port = args.port
@@ -310,13 +362,31 @@ def main():
     env = {**os.environ, "PORT": str(registry_port)}
     if cert_dir:
         env["CERT_DIR"] = cert_dir
+        print(f"Certificate directory set in environment: {cert_dir}")
     
     try:
+        print("Launching registry process...")
+        
+        if args.use_gunicorn:
+            # Use Gunicorn
+            gunicorn_path, source_info = find_gunicorn_executable()
+            if gunicorn_path:
+                cmd = [gunicorn_path, "-c", "gunicorn.conf.py", "registry:app"]
+                print(f"Using Gunicorn server from {source_info}: {gunicorn_path}")
+            else:
+                print("ERROR: Gunicorn not found in virtual environment or system PATH!")
+                print("Please install gunicorn:")
+                print("  pip install gunicorn")
+        else:
+            # Use Flask development server
+            cmd = ["python3", "registry.py"]
+            print("Using Flask development server")
+        
         registry_process = subprocess.Popen(
-            ["python3", "registry.py"],
+            cmd,
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=log_file,
+            stderr=log_file,
             text=True
         )
         

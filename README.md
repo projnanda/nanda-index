@@ -24,9 +24,14 @@ apt install python3.10-venv
 
 
 
-1. SSH into the server:
+1. SSH into the server and ensure system readiness:
 ```bash
 ssh root@your-server-ip
+```
+
+```bash
+sudo apt update && sudo apt install python3-venv
+
 ```
 
 2. Clone the repository to /opt:
@@ -64,7 +69,29 @@ python3 run_registry.py --public-url <https://your-domain.com>
 
 2. Start with specific port:
 ```bash
-python3 run_registry.py --public-url https://your-domain.com --port 6900
+python3 run_registry.py --public-url <https://your-domain.com> --port 6900
+```
+
+3. Start with Gunicorn (recommended for production):
+```bash
+python3 run_registry.py --public-url <https://your-domain.com> --use-gunicorn
+```
+
+### Running in Background (Optional)
+
+If you want to run the service in the background:
+
+```bash
+# Using nohup
+nohup python3 run_registry.py --public-url <https://your-domain.com> --use-gunicorn > registry.log 2>&1 &
+
+# Or using screen
+screen -S registry
+python3 run_registry.py --public-url <https://your-domain.com> --use-gunicorn
+# Press Ctrl+A, then D to detach
+
+# Or using tmux
+tmux new-session -d -s registry 'python3 run_registry.py --public-url <https://your-domain.com> --use-gunicorn'
 ```
 
 ### Port Requirements
@@ -121,6 +148,18 @@ sudo systemctl stop apache2  # if apache is running
 3. Verify port is free:
 ```bash
 sudo netstat -tulpn | grep :80
+```
+
+4. To see errors and logs
+```bash 
+# View access logs
+tail -f /opt/nanda-index/logs/access.log
+
+# View error logs
+tail -f /opt/nanda-index/logs/error.log
+
+# View both logs
+tail -f /opt/nanda-index/logs/*.log
 ```
 
 ### Certificate Issues

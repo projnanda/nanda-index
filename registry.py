@@ -155,7 +155,7 @@ def allocate_agent():
     
     # Loop through all agents in the registry to find available ones
     for agent_id, agent_url in registry.items():
-        if agent_id != 'agent_status' and agent_id.split('agent')[1][0] == 'm' and agent_id not in assigned_agent_ids:
+        if agent_id != 'agent_status' and agent_id.startswith('agentm') and agent_id not in assigned_agent_ids:
             available_agents.append((agent_id, agent_url))
     
     if not available_agents:
@@ -325,7 +325,7 @@ def signup():
     assigned_agent_ids = set()
     for client, agent_id in client_registry.get('agent_map', {}).items():
         assigned_agent_ids.add(agent_id)
-    available_agents = [aid for aid in registry if aid != 'agent_status' and aid.split('agent')[1][0] == 'm' and aid not in assigned_agent_ids]
+    available_agents = [aid for aid in registry if aid != 'agent_status' and aid.startswith('agentm') and aid not in assigned_agent_ids]
     if not available_agents:
         return jsonify({'status': 'error', 'message': 'No available agents'}), 503
     selected_agent_id = random.choice(available_agents)

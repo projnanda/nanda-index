@@ -13,11 +13,18 @@ import requests
 
 DEFAULT_REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:6900")
 DEFAULT_OASF_SCHEMA_DIR = os.environ.get("OASF_SCHEMA_DIR", "../agntcy/oasf/schema")
+# Git clone configuration for taxonomy if local dir missing
+GIT_TAXONOMY_REPO = os.environ.get("OASF_SCHEMA_GIT_REPO", "https://github.com/agntcy/oasf.git")
+GIT_TAXONOMY_REF = os.environ.get("OASF_SCHEMA_GIT_REF", "main")
+ENABLE_GIT_CLONE = os.environ.get("OASF_SCHEMA_GIT_CLONE", "1") == "1"
 
 # ---------------- Enhanced Skill Mapping Support -----------------
 class SkillMapper:
     def __init__(self, schema_dir: Path):
+        # If local directory missing and cloning enabled, attempt git clone of taxonomy repo
         self.schema_dir = schema_dir
+        if not self.schema_dir.exists() and ENABLE_GIT_CLONE:
+            self._attempt_clone()
         self.categories: Dict[str, Dict[str, Any]] = {}
         self.skills: Dict[str, Dict[str, Any]] = {}
         self.leaf_skills: Dict[str, Dict[str, Any]] = {}
@@ -25,7 +32,24 @@ class SkillMapper:
         self._load()
         self._compute_leaves()
 
+    def _attempt_clone(self):
+        try:
+            # Determine repo root (assuming schema_dir ends with /schema)
+            repo_root = self.schema_dir.parent if self.schema_dir.name == 'schema' else self.schema_dir
+            if repo_root.exists():
+                return  # Already present (maybe partial)
+            repo_root.parent.mkdir(parents=True, exist_ok=True)
+            print(f"[INFO] Cloning taxonomy repo {GIT_TAXONOMY_REPO} -> {repo_root}")
+            import subprocess
+            subprocess.run(['git', 'clone', '--depth', '1', '--branch', GIT_TAXONOMY_REF, GIT_TAXONOMY_REPO, str(repo_root)], check=False)
+            if not self.schema_dir.exists():
+                print(f"[WARN] Clone finished but schema directory not found at {self.schema_dir}")
+        except Exception as e:
+            print(f"[WARN] Git clone failed: {e}")
+
     def _load(self):
+        # No remote_mode; we rely on local filesystem (clone may have populated it)
+        # Local filesystem mode
         cat_file = self.schema_dir / 'skill_categories.json'
         if cat_file.exists():
             try:

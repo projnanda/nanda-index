@@ -19,7 +19,7 @@ A registry service for managing and allocating NANDA agents. This service handle
 
 ## Installation
 
-Preparing 
+Preparing
 apt install python3.10-venv
 
 
@@ -66,6 +66,7 @@ python3 run_registry.py --public-url <https://your-domain.com>
 ```bash
 python3 run_registry.py --public-url https://your-domain.com --port 6900
 ```
+
 
 ### Port Requirements
 
@@ -148,4 +149,4 @@ If SSL certificate setup fails:
 
 ## License
 
-[Add your license information here] 
+[Add your license information here]

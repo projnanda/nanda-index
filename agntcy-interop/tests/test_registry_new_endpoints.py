@@ -6,7 +6,11 @@ import pytest
 # Enable TEST_MODE before importing registry
 os.environ['TEST_MODE'] = '1'
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+interop_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+repo_root = os.path.abspath(os.path.join(interop_root, os.pardir))
+for p in (interop_root, repo_root):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 registry_module = importlib.import_module('registry')
 app = registry_module.app

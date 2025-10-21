@@ -6,9 +6,11 @@ import importlib
 from contextlib import closing
 
 # Ensure project root on path before importing / reloading registry
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+INTEROP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+REPO_ROOT = os.path.abspath(os.path.join(INTEROP_ROOT, os.pardir))
+for p in (INTEROP_ROOT, REPO_ROOT):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 # Clear TEST_MODE and force fresh import of registry for Mongo persistence
 os.environ.pop("TEST_MODE", None)

@@ -8,7 +8,9 @@ import signal
 import argparse
 import socket
 import shutil
+import threading
 from urllib.parse import urlparse
+from collections import deque
 
 def get_local_ip():
     """Get the local IP address of the system"""
@@ -312,20 +314,39 @@ def main():
         env["CERT_DIR"] = cert_dir
     
     try:
+        output_buffer = deque(maxlen=200)
+
+        def forward_output(pipe, buffer):
+            try:
+                for line in iter(pipe.readline, ''):
+                    buffer.append(line.rstrip('\n'))
+                    print(line, end='', flush=True)
+            finally:
+                pipe.close()
+
         registry_process = subprocess.Popen(
             ["python3", "registry.py"],
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
         )
+
+        output_thread = threading.Thread(
+            target=forward_output,
+            args=(registry_process.stdout, output_buffer),
+            daemon=True
+        )
+        output_thread.start()
         
         # Check if process started successfully
         if registry_process.poll() is not None:
-            stdout, stderr = registry_process.communicate()
+            output_thread.join(timeout=1)
             print("Registry process failed to start!")
-            print("STDOUT:", stdout)
-            print("STDERR:", stderr)
+            if output_buffer:
+                print("Recent output:")
+                print("\n".join(output_buffer))
             sys.exit(1)
             
         print(f"Registry process started with PID: {registry_process.pid}")
@@ -335,10 +356,12 @@ def main():
         # Keep running until interrupted
         while True:
             if registry_process.poll() is not None:
-                stdout, stderr = registry_process.communicate()
-                print("Registry process stopped unexpectedly!")
-                print("STDOUT:", stdout)
-                print("STDERR:", stderr)
+                output_thread.join(timeout=1)
+                exit_code = registry_process.returncode
+                print(f"Registry process stopped unexpectedly with exit code {exit_code}!")
+                if output_buffer:
+                    print("Recent output:")
+                    print("\n".join(output_buffer))
                 sys.exit(1)
             time.sleep(1)
             

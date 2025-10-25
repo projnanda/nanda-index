@@ -5,6 +5,8 @@ import os
 import random
 from datetime import datetime
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 # MongoDB integration
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
@@ -13,6 +15,13 @@ import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
+app.config["RATELIMIT_HEADERS_ENABLED"] = True
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[]
+)
 
 # File to store the registry
 DEFAULT_PORT = 6900
@@ -117,6 +126,13 @@ def save_registry():
         print(f"[registry] Error saving agent registry to MongoDB: {e}")
 
 # --------------------------------------------------------------------------
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    """Return a consistent JSON response when rate limits are exceeded."""
+    return jsonify({
+        "error": "Too many requests",
+        "message": "Rate limit exceeded"
+    }), 429
 
 @app.route('/api/allocate', methods=['POST'])
 def allocate_agent():
@@ -196,6 +212,7 @@ def allocate_agent():
     })
 
 @app.route('/register', methods=['POST'])
+@limiter.limit("20 per 3 days", key_func=get_remote_address)
 def register():
     data = request.json
     if not data or 'agent_id' not in data or 'agent_url' not in data:
@@ -482,4 +499,3 @@ if __name__ == '__main__':
     else:
         print("No certificate directory specified. Running without SSL...")
         app.run(host='0.0.0.0', port=port)
-

@@ -147,11 +147,11 @@ def register_switchboard_routes(app):
     Register switchboard endpoints with Flask app.
     
     Adds:
-    - GET /federation/lookup/<agent_id>
-    - GET /federation/registries
+    - GET /switchboard/lookup/<agent_id>
+    - GET /switchboard/registries
     """
     
-    @app.route('/federation/lookup/<agent_id>', methods=['GET'])
+    @app.route('/switchboard/lookup/<agent_id>', methods=['GET'])
     def switchboard_lookup(agent_id):
         """Cross-registry agent lookup endpoint."""
         router = get_router()
@@ -169,13 +169,13 @@ def register_switchboard_routes(app):
         
         return jsonify(result)
     
-    @app.route('/federation/registries', methods=['GET'])
+    @app.route('/switchboard/registries', methods=['GET'])
     def switchboard_registries():
         """List all connected registries."""
         router = get_router()
         return jsonify(router.list_registries())
     
     print("[Switchboard] ✅ Switchboard routes registered")
-    print("[Switchboard]    - GET /federation/lookup/<agent_id>")
-    print("[Switchboard]    - GET /federation/registries")
+    print("[Switchboard]    - GET /switchboard/lookup/<agent_id>")
+    print("[Switchboard]    - GET /switchboard/registries")
 

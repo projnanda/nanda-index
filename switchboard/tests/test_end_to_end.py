@@ -100,7 +100,7 @@ def test_registry_starts_with_federation():
         process = start_registry_server(REGISTRY_PORT + 1, enable_federation=True)
         
         # Check federation endpoints exist
-        response = requests.get(f"http://localhost:{REGISTRY_PORT + 1}/federation/registries")
+        response = requests.get(f"http://localhost:{REGISTRY_PORT + 1}/switchboard/registries")
         assert response.status_code == 200
         
         data = response.json()
@@ -136,7 +136,7 @@ def test_register_and_lookup_local_agent():
         print(f"  → Registered agent: test-agent-001")
         
         # Lookup via federation (local registry)
-        response = requests.get(f"{base_url}/federation/lookup/test-agent-001")
+        response = requests.get(f"{base_url}/switchboard/lookup/test-agent-001")
         
         if response.status_code != 200:
             print(f"  → Federation lookup failed: {response.status_code}")
@@ -238,7 +238,7 @@ def test_agntcy_federation_with_dirctl():
         base_url = f"http://localhost:{REGISTRY_PORT + 3}"
         
         # Step 3: Verify AGNTCY adapter is registered
-        response = requests.get(f"{base_url}/federation/registries")
+        response = requests.get(f"{base_url}/switchboard/registries")
         data = response.json()
         registry_ids = [r['registry_id'] for r in data['registries']]
         
@@ -259,9 +259,9 @@ def test_agntcy_federation_with_dirctl():
         agent_identifier = f"@agntcy:{agent_name}"
         print(f"\n🔍 Querying: {agent_identifier}")
         print(f"  → Registry: agntcy (AGNTCY ADS)")
-        print(f"  → Endpoint: {base_url}/federation/lookup/{agent_identifier}")
+        print(f"  → Endpoint: {base_url}/switchboard/lookup/{agent_identifier}")
         
-        response = requests.get(f"{base_url}/federation/lookup/{agent_identifier}")
+        response = requests.get(f"{base_url}/switchboard/lookup/{agent_identifier}")
         
         if response.status_code != 200:
             print(f"  ❌ Federation lookup failed: {response.status_code}")

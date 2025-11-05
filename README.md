@@ -54,12 +54,41 @@ A comprehensive registry service for managing and allocating NANDA agents with f
    - Translates to NANDA format
 4. **Response**: Unified NANDA AgentFacts JSON
 
+## Repository Structure
+
+```
+nanda-index-federation/
+├── registry.py                    # Core registry service with federation support
+├── run_registry.py                # Production launcher with SSL management
+├── pyproject.toml                 # Modern dependency management (uv)
+├── requirements.txt               # Legacy dependency list (deprecated)
+│
+├── federation/                    # Federation layer (optional)
+│   ├── adapters/
+│   │   ├── base_adapter.py        # Abstract adapter interface
+│   │   ├── agntcy_adapter.py      # AGNTCY ADS adapter with SkillMapper
+│   │   └── registry_adapter.py    # Local NANDA registry adapter
+│   ├── federation_routes.py       # Flask routes for federated lookup
+│   └── tests/
+│       ├── test_integration.py    # Unit-level integration tests
+│       ├── test_end_to_end.py     # E2E tests with real servers
+│       └── utils/
+│           └── *.json             # OASF agent fixtures for testing
+│
+└── agntcy-interop/                # Batch interoperability tools
+    ├── batch/
+    │   ├── export_nanda_to_agntcy.py   # Export with SkillMapper
+    │   └── sync_agntcy_dir.py          # Bulk sync operations
+    ├── adapters/
+    │   └── agentfacts_adapter.py       # AgentFacts schema adapter
+    ├── docs/                           # Interop documentation
+    └── tests/                          # Batch operation tests
+```
+
 ## Prerequisites
 
 - Python 3.6+
 - MongoDB
-- Root/sudo access (for SSL certificate management)
-- Port 80 available (for Let's Encrypt certificate challenge)
 - (Optional) `dirctl` for AGNTCY federation - see setup below
 
 ### Setting up AGNTCY ADS (Optional)
@@ -83,72 +112,47 @@ dirctl status
 
 ## Installation
 
-Preparing
-apt install python3.10-venv
-
-
-
-1. SSH into the server:
+1. Clone the repository:
 ```bash
-ssh root@your-server-ip
+git clone https://github.com/projnanda/nanda-index.git
+cd nanda-index
 ```
 
-2. Clone the repository to /opt:
+2. Install Python dependencies using `uv`:
 ```bash
-git clone https://github.com/aidecentralized/nanda-index.git /opt/nanda-index
-cd /opt/nanda-index
+uv sync
 ```
 
-3. Create and activate a virtual environment:
-```bash
-python3 -m venv venv && source venv/bin/activate
-```
-
-4. Install dependencies:
+Or using pip:
 ```bash
 pip install -r requirements.txt
 ```
 
-5. Set up MongoDB:
-   - Install MongoDB if not already installed
-   - Create a database for the registry
-   - Set the MongoDB URI in environment variables:
-     ```bash
-     export MONGODB_URI="<provide your URI>"
-     ```
+3. Set up MongoDB and configure environment:
+```bash
+export MONGODB_URI="mongodb://localhost:27017/nanda"
+```
 
 ## Usage
 
 ### Starting the Registry
 
-1. Basic start with automatic SSL certificate:
+Basic usage:
 ```bash
-python3 run_registry.py --public-url <https://your-domain.com>
+python3 registry.py
 ```
 
-2. Start with specific port:
+With federation enabled:
+```bash
+export ENABLE_FEDERATION=true
+export AGNTCY_ADS_URL=localhost:8888
+python3 registry.py
+```
+
+Production deployment with SSL (requires root):
 ```bash
 python3 run_registry.py --public-url https://your-domain.com --port 6900
 ```
-
-
-### Port Requirements
-
-- Port 80: Required temporarily for Let's Encrypt certificate challenge
-- Port 6900: Default port for the registry service
-- MongoDB port: Default 27017
-
-### SSL Certificate Management
-
-The service automatically:
-- Obtains SSL certificates from Let's Encrypt
-- Stores certificates in `/root/certificates/`
-- Handles certificate renewal
-
-If port 80 is in use, the service will attempt to:
-1. Identify the process using port 80
-2. Stop common web servers (nginx, apache2)
-3. Wait for the port to be released
 
 ## API Endpoints
 

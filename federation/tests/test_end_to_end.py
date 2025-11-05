@@ -160,6 +160,9 @@ def test_register_and_lookup_local_agent():
 
 def test_agntcy_federation_with_dirctl():
     """Test federation with real AGNTCY ADS (dirctl) - COMPLETE FLOW with SkillMapper."""
+    import json
+    import tempfile
+    
     dirctl_running = check_dirctl_running()
     
     if not dirctl_running:
@@ -171,49 +174,60 @@ def test_agntcy_federation_with_dirctl():
     try:
         print(f"  → dirctl detected on port {DIRCTL_PORT}")
         
-        # Step 1: Push helper-agent.json to ADS
-        helper_agent_data = {
-            "name": "helper-agent",
-            "version": "v1.0.0",
-            "description": "Test agent with image segmentation skill",
-            "schema_version": "0.7.0",
-            "skills": [
-                {
-                    "id": 201,
-                    "name": "images_computer_vision/image_segmentation"
-                }
-            ],
-            "authors": ["Test Suite"],
-            "created_at": "2025-11-05T00:00:00Z",
-            "locators": [
-                {
-                    "type": "source_code",
-                    "url": "https://github.com/test/helper-agent"
-                }
-            ]
-        }
+        # Step 1: Load test agent fixture
+        agent_name = "vision-agent"
+        fixture_path = Path(__file__).parent / "utils" / f"{agent_name}.json"
         
-        # Write to temp file and push to dirctl
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(helper_agent_data, f)
-            temp_file = f.name
+        print(f"  → Loading fixture: {fixture_path.name}")
+        with open(fixture_path, 'r') as f:
+            agent_data = json.load(f)
+        
+        # Ensure agent exists in ADS (push if needed)
+        print(f"  → Ensuring '{agent_name}' exists in ADS...")
         
         try:
-            # Try to push to dirctl
-            push_result = subprocess.run(
-                ['dirctl', 'push', temp_file],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            from agntcy.dir_sdk.client import Config, Client
+            from agntcy.dir_sdk.models import search_v1
             
-            if push_result.returncode == 0:
-                print(f"  → Pushed helper-agent to dirctl")
+            config = Config(
+                server_address=f"localhost:{DIRCTL_PORT}",
+                dirctl_path="/opt/homebrew/bin/dirctl",
+                auth_mode="insecure"
+            )
+            test_client = Client(config)
+            
+            # Check if agent already exists
+            search_query = search_v1.RecordQuery(
+                type=search_v1.RecordQueryType.RECORD_QUERY_TYPE_NAME,
+                value=agent_name
+            )
+            search_request = search_v1.SearchRequest(queries=[search_query], limit=1)
+            search_results = list(test_client.search(search_request))
+            
+            if search_results:
+                print(f"  → '{agent_name}' already exists in ADS")
             else:
-                print(f"  → dirctl push failed (might already exist): {push_result.stderr[:100]}")
-        finally:
-            os.unlink(temp_file)
+                print(f"  → Pushing '{agent_name}' to ADS...")
+                
+                # Push using dirctl subprocess with correct server address
+                push_result = subprocess.run(
+                    ['dirctl', 'push', str(fixture_path), '--server-addr', f'localhost:{DIRCTL_PORT}'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if push_result.returncode == 0:
+                    cid = push_result.stdout.strip().split()[-1]
+                    print(f"  → ✅ Pushed '{agent_name}' to ADS (CID: {cid})")
+                else:
+                    raise RuntimeError(f"dirctl push failed: {push_result.stderr}")
+                    
+        except Exception as e:
+            print(f"  → ❌ Failed to ensure agent in ADS: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Step 2: Start registry with AGNTCY federation
         process = start_registry_server(
@@ -242,7 +256,12 @@ def test_agntcy_federation_with_dirctl():
         print(f"  → ✅ AGNTCY adapter registered")
         
         # Step 4: Query via federation
-        response = requests.get(f"{base_url}/federation/lookup/@agntcy:helper-agent")
+        agent_identifier = f"@agntcy:{agent_name}"
+        print(f"\n🔍 Querying: {agent_identifier}")
+        print(f"  → Registry: agntcy (AGNTCY ADS)")
+        print(f"  → Endpoint: {base_url}/federation/lookup/{agent_identifier}")
+        
+        response = requests.get(f"{base_url}/federation/lookup/{agent_identifier}")
         
         if response.status_code != 200:
             print(f"  ❌ Federation lookup failed: {response.status_code}")
@@ -251,20 +270,44 @@ def test_agntcy_federation_with_dirctl():
             print("⚠️  Federation registered but lookup failed (check AGNTCY SDK)")
             return "skip"
         
-        agent_data = response.json()
+        retrieved_agent_data = response.json()
         
-        # Step 5: Verify basic NANDA format
-        assert agent_data['registry_id'] == 'agntcy', "Should be from AGNTCY registry"
-        assert agent_data['agent_name'] == 'helper-agent', "Agent name should match"
-        assert agent_data['source_schema'] == 'oasf', "Should indicate OASF source"
-        assert 'oasf_schema_version' in agent_data, "Should have OASF schema version"
+        # Step 5: Show OASF → NANDA translation
+        print("\n" + "="*70)
+        print("📋 ORIGINAL OASF SCHEMA (from ADS):")
+        print("="*70)
+        print(json.dumps(agent_data, indent=2))
         
-        print(f"  → Retrieved agent: {agent_data['agent_name']}")
-        print(f"  → OASF schema version: {agent_data.get('oasf_schema_version')}")
+        print("\n" + "="*70)
+        print("📋 TRANSLATED NANDA AgentFacts FORMAT:")
+        print("="*70)
+        print(json.dumps(retrieved_agent_data, indent=2))
+        print("="*70 + "\n")
         
-        # Step 6: Verify SkillMapper processed the skills
-        capabilities = agent_data.get('capabilities', [])
+        # Step 6: Verify basic NANDA format
+        assert retrieved_agent_data['registry_id'] == 'agntcy', "Should be from AGNTCY registry"
+        assert retrieved_agent_data['agent_name'] == agent_name, f"Agent name should match, expected {agent_name}"
+        assert retrieved_agent_data['source_schema'] == 'oasf', "Should indicate OASF source"
+        assert 'oasf_schema_version' in retrieved_agent_data, "Should have OASF schema version"
+        
+        print(f"  → Retrieved agent: {retrieved_agent_data['agent_name']}")
+        print(f"  → OASF schema version: {retrieved_agent_data.get('oasf_schema_version')}")
+        
+        # Step 6.5: Verify description mapping
+        expected_desc = agent_data['description']
+        actual_desc = retrieved_agent_data.get('description', '')
+        print(f"\n📝 Description Mapping Check:")
+        print(f"  → Expected: '{expected_desc}'")
+        print(f"  → Actual:   '{actual_desc}'")
+        if expected_desc == actual_desc:
+            print(f"  → ✅ Description mapped correctly!")
+        else:
+            print(f"  → ⚠️  Description mismatch")
+        
+        # Step 7: Verify SkillMapper processed the skills
+        capabilities = retrieved_agent_data.get('capabilities', [])
         print(f"  → Capabilities extracted: {capabilities}")
+        print(f"  → Original OASF skills: {[s['name'] for s in agent_data['skills']]}")
         
         # The skill "images_computer_vision/image_segmentation" should be processed
         # SkillMapper should extract "image_segmentation" or map to taxonomy
@@ -282,8 +325,8 @@ def test_agntcy_federation_with_dirctl():
         
         print(f"  → ✅ SkillMapper processed skills successfully")
         
-        # Step 7: Check if taxonomy mapping occurred (if OASF schema available)
-        if isinstance(capabilities[0], dict):
+        # Step 8: Check if taxonomy mapping occurred (if OASF schema available)
+        if capabilities and isinstance(capabilities[0], dict):
             print(f"  → ✅ FULL taxonomy mapping detected!")
             print(f"     Skill ID: {capabilities[0].get('skill_id')}")
             print(f"     Category: {capabilities[0].get('category_name')}")
@@ -291,7 +334,8 @@ def test_agntcy_federation_with_dirctl():
         else:
             print(f"  → Basic skill extraction (taxonomy not available or not used)")
         
-        print("✅ COMPLETE: ADS → gRPC → SkillMapper → NANDA flow works!")
+        print("\n✅ COMPLETE: ADS → gRPC → SkillMapper → NANDA flow works!")
+        print("="*70)
         
     except subprocess.TimeoutExpired:
         print("⚠️  dirctl command timed out")

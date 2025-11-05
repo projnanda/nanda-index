@@ -1,4 +1,4 @@
-"""Federation routing layer - integrates with Flask registry.py."""
+"""Switchboard routing layer - integrates with Flask registry.py."""
 
 import os
 from flask import jsonify, request
@@ -12,12 +12,12 @@ try:
     AGNTCY_AVAILABLE = True
 except Exception as e:
     AGNTCY_AVAILABLE = False
-    print(f"[Federation] AGNTCY adapter not available: {e}")
+    print(f"[Switchboard] AGNTCY adapter not available: {e}")
 
 
-class FederationRouter:
+class SwitchboardRouter:
     """
-    Federation routing layer for NANDA Index.
+    Switchboard routing layer for NANDA Index.
     
     Routes agent lookups to appropriate adapters based on identifier prefix:
     - @agntcy:agent-name → AGNTCY adapter
@@ -37,7 +37,7 @@ class FederationRouter:
         port = os.getenv("PORT", "6900")
         registry_url = os.getenv("REGISTRY_URL", f"http://localhost:{port}")
         self.adapters["nanda"] = RegistryAdapter(registry_url)
-        print(f"[Federation] ✅ Local registry adapter initialized: {registry_url}")
+        print(f"[Switchboard] ✅ Local registry adapter initialized: {registry_url}")
         
         # AGNTCY adapter (optional, based on env vars)
         agntcy_ads_url = os.getenv("AGNTCY_ADS_URL")
@@ -51,11 +51,11 @@ class FederationRouter:
                     dirctl_path=dirctl_path,
                     oasf_schema_dir=oasf_schema_dir
                 )
-                print(f"[Federation] ✅ AGNTCY adapter initialized: {agntcy_ads_url}")
+                print(f"[Switchboard] ✅ AGNTCY adapter initialized: {agntcy_ads_url}")
             except Exception as e:
-                print(f"[Federation] ⚠️  AGNTCY adapter failed to initialize: {e}")
+                print(f"[Switchboard] ⚠️  AGNTCY adapter failed to initialize: {e}")
         elif agntcy_ads_url and not AGNTCY_AVAILABLE:
-            print("[Federation] ⚠️  AGNTCY_ADS_URL set but adapter not available")
+            print("[Switchboard] ⚠️  AGNTCY_ADS_URL set but adapter not available")
     
     def parse_agent_identifier(self, agent_id: str) -> Tuple[str, str]:
         """
@@ -78,9 +78,9 @@ class FederationRouter:
         # Default to local NANDA registry
         return "nanda", agent_id
     
-    async def lookup_federated(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    async def lookup_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """
-        Perform federated lookup across registries.
+        Perform cross-registry lookup via switchboard.
         
         Args:
             agent_id: Agent identifier (with or without @registry: prefix)
@@ -90,32 +90,32 @@ class FederationRouter:
         """
         registry_id, agent_name = self.parse_agent_identifier(agent_id)
         
-        print(f"[Federation] Lookup request: {agent_id}")
-        print(f"[Federation] Routing to: {registry_id}, agent: {agent_name}")
-        print(f"[Federation] Available adapters: {list(self.adapters.keys())}")
+        print(f"[Switchboard] Lookup request: {agent_id}")
+        print(f"[Switchboard] Routing to: {registry_id}, agent: {agent_name}")
+        print(f"[Switchboard] Available adapters: {list(self.adapters.keys())}")
         
         # Get adapter
         adapter = self.adapters.get(registry_id)
         if not adapter:
-            print(f"[Federation] ❌ Unknown registry: {registry_id}")
+            print(f"[Switchboard] ❌ Unknown registry: {registry_id}")
             return None
         
-        print(f"[Federation] Using adapter: {adapter.__class__.__name__}")
+        print(f"[Switchboard] Using adapter: {adapter.__class__.__name__}")
         
         # Perform lookup
         try:
             result = await adapter.lookup(agent_name)
-            print(f"[Federation] Adapter returned: {result is not None}")
+            print(f"[Switchboard] Adapter returned: {result is not None}")
         except Exception as e:
-            print(f"[Federation] ❌ Adapter error: {e}")
+            print(f"[Switchboard] ❌ Adapter error: {e}")
             import traceback
             traceback.print_exc()
             return None
         
         if result:
-            print(f"[Federation] ✅ Found agent: {agent_id}")
+            print(f"[Switchboard] ✅ Found agent: {agent_id}")
         else:
-            print(f"[Federation] ❌ Agent not found: {agent_id}")
+            print(f"[Switchboard] ❌ Agent not found: {agent_id}")
         
         return result
     
@@ -131,20 +131,20 @@ class FederationRouter:
 
 
 # Global router instance
-_router: Optional[FederationRouter] = None
+_router: Optional[SwitchboardRouter] = None
 
 
-def get_router() -> FederationRouter:
-    """Get or create the global federation router."""
+def get_router() -> SwitchboardRouter:
+    """Get or create the global switchboard router."""
     global _router
     if _router is None:
-        _router = FederationRouter()
+        _router = SwitchboardRouter()
     return _router
 
 
-def register_federation_routes(app):
+def register_switchboard_routes(app):
     """
-    Register federation endpoints with Flask app.
+    Register switchboard endpoints with Flask app.
     
     Adds:
     - GET /federation/lookup/<agent_id>
@@ -152,15 +152,15 @@ def register_federation_routes(app):
     """
     
     @app.route('/federation/lookup/<agent_id>', methods=['GET'])
-    def federation_lookup(agent_id):
-        """Federated agent lookup endpoint."""
+    def switchboard_lookup(agent_id):
+        """Cross-registry agent lookup endpoint."""
         router = get_router()
         
         # Run async lookup in sync context
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(router.lookup_federated(agent_id))
+            result = loop.run_until_complete(router.lookup_agent(agent_id))
         finally:
             loop.close()
         
@@ -170,12 +170,12 @@ def register_federation_routes(app):
         return jsonify(result)
     
     @app.route('/federation/registries', methods=['GET'])
-    def federation_registries():
-        """List all federated registries."""
+    def switchboard_registries():
+        """List all connected registries."""
         router = get_router()
         return jsonify(router.list_registries())
     
-    print("[Federation] ✅ Federation routes registered")
-    print("[Federation]    - GET /federation/lookup/<agent_id>")
-    print("[Federation]    - GET /federation/registries")
+    print("[Switchboard] ✅ Switchboard routes registered")
+    print("[Switchboard]    - GET /federation/lookup/<agent_id>")
+    print("[Switchboard]    - GET /federation/registries")
 

@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 def test_agntcy_adapter_imports_skillmapper():
     """Test that AGNTCY adapter can import SkillMapper from agntcy-interop."""
-    from federation.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
+    from switchboard.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
     
     # SkillMapper should be available (even without AGNTCY SDK)
     assert SKILL_MAPPER_AVAILABLE, "SkillMapper should be importable from agntcy-interop"
@@ -19,7 +19,7 @@ def test_agntcy_adapter_imports_skillmapper():
 
 def test_skillmapper_can_be_instantiated():
     """Test that SkillMapper from agntcy-interop can be instantiated."""
-    from federation.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
+    from switchboard.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
     
     if not SKILL_MAPPER_AVAILABLE:
         import pytest
@@ -46,7 +46,7 @@ def test_skillmapper_can_be_instantiated():
 
 def test_agntcy_adapter_translation_without_skillmapper():
     """Test AGNTCY adapter OASF translation works without SkillMapper."""
-    from federation.adapters.agntcy_adapter import AGNTCYAdapter, AGNTCY_SDK_AVAILABLE
+    from switchboard.adapters.agntcy_adapter import AGNTCYAdapter, AGNTCY_SDK_AVAILABLE
     
     if AGNTCY_SDK_AVAILABLE:
         import pytest
@@ -70,7 +70,7 @@ def test_agntcy_adapter_translation_without_skillmapper():
     
     # Create adapter (will fail at __init__ due to missing SDK, so test just translation)
     # We'll test the translation method directly by mocking
-    from federation.adapters.base_adapter import BaseRegistryAdapter
+    from switchboard.adapters.base_adapter import BaseRegistryAdapter
     
     class MockAGNTCYAdapter(BaseRegistryAdapter):
         def __init__(self):
@@ -134,7 +134,7 @@ def test_agntcy_adapter_translation_without_skillmapper():
 
 def test_registry_adapter_can_be_instantiated():
     """Test that RegistryAdapter can be created."""
-    from federation.adapters.registry_adapter import RegistryAdapter
+    from switchboard.adapters.registry_adapter import RegistryAdapter
     
     adapter = RegistryAdapter("http://localhost:6900")
     assert adapter is not None
@@ -145,13 +145,13 @@ def test_registry_adapter_can_be_instantiated():
 
 
 def test_federation_router_initialization():
-    """Test that FederationRouter initializes adapters correctly."""
-    from federation.federation_routes import FederationRouter
+    """Test that SwitchboardRouter initializes adapters correctly."""
+    from switchboard.switchboard_routes import SwitchboardRouter
     
     # Set minimal env
     os.environ.pop('AGNTCY_ADS_URL', None)  # Ensure it's not set
     
-    router = FederationRouter()
+    router = SwitchboardRouter()
     
     # Should have at least the local NANDA adapter
     assert 'nanda' in router.adapters
@@ -160,14 +160,14 @@ def test_federation_router_initialization():
     # Should NOT have AGNTCY adapter without AGNTCY_ADS_URL
     assert 'agntcy' not in router.adapters
     
-    print("✅ FederationRouter initialization works")
+    print("✅ SwitchboardRouter initialization works")
 
 
 def test_federation_router_parse_identifier():
     """Test agent identifier parsing."""
-    from federation.federation_routes import FederationRouter
+    from switchboard.switchboard_routes import SwitchboardRouter
     
-    router = FederationRouter()
+    router = SwitchboardRouter()
     
     # Test @agntcy:agent-name
     registry_id, agent_name = router.parse_agent_identifier("@agntcy:helper-agent")
@@ -189,7 +189,7 @@ def test_federation_router_parse_identifier():
 
 def test_skillmapper_integration_with_mock_data():
     """Test SkillMapper can map capabilities (with mock taxonomy)."""
-    from federation.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
+    from switchboard.adapters.agntcy_adapter import SKILL_MAPPER_AVAILABLE
     
     if not SKILL_MAPPER_AVAILABLE:
         import pytest

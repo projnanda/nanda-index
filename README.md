@@ -1,6 +1,8 @@
-# NANDA Registry Service
+# NANDA Registry with Federation
 
-A comprehensive registry service for managing and allocating NANDA agents with federated multi-registry support. This service handles agent registration, allocation, client-agent mapping, and cross-registry agent discovery.
+**A unified agent registry that bridges multiple agent ecosystems in real-time.**
+
+NANDA Registry enables seamless discovery and interoperability across heterogeneous agent registries. Register agents locally, query remote registries like AGNTCY ADS, and get unified responses—all through a single API. Built with optional federation, batch synchronization, and intelligent skill taxonomy mapping.
 
 ## Features
 

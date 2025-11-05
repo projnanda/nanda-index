@@ -1,18 +1,18 @@
-# Switchboard: Cross-Registry Agent Discovery
+# Switchboard: Cross-Index Agent Discovery
 
-**Real-time agent discovery across multiple registries with automatic schema translation.**
+**Real-time agent discovery across multiple indices with automatic schema translation.**
 
-Switchboard enables NANDA Index to query external agent registries (like AGNTCY ADS) in real-time, automatically translating between different schema formats while maintaining a unified API.
+Switchboard enables NANDA Index to query external agent indices (like AGNTCY ADS) in real-time, automatically translating between different schema formats while maintaining a unified API.
 
 Enable by setting `ENABLE_FEDERATION=true` and configuring registry endpoints (see Setup section).
 
 ## Features
 
 - **AGNTCY ADS Integration** - Query agents from AGNTCY Agent Directory Service via gRPC
-- **Cross-registry routing** - Use `@agntcy:agent-name` to specify external registries
+- **Cross-index routing** - Use `@agntcy:agent-name` to specify external indices
 - **Automatic schema translation** - OASF ↔ NANDA AgentFacts conversion
 - **Skill taxonomy mapping** - Intelligent capability translation using AGNTCY taxonomy
-- **Pluggable adapter architecture** - Easily extend to support additional registries
+- **Pluggable adapter architecture** - Easily extend to support additional indices
 
 ## Architecture
 
@@ -78,7 +78,7 @@ python3 registry.py
 
 When Switchboard is enabled, the following endpoints become available:
 
-#### Cross-Registry Lookup
+#### Cross-Index Lookup
 ```
 GET /switchboard/lookup/<agent_id>
 ```
@@ -93,7 +93,7 @@ Query local NANDA agent:
 curl http://localhost:6900/switchboard/lookup/financial-analyzer
 ```
 
-#### List Connected Registries
+#### List Connected Indices
 ```
 GET /switchboard/registries
 ```
@@ -252,7 +252,7 @@ switchboard/
 
 ### Adding New Adapters
 
-To support additional registries:
+To support additional indices:
 
 1. Create a new adapter in `adapters/` extending `BaseRegistryAdapter`
 2. Implement `query_agent()` and `translate_to_nanda()`

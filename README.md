@@ -2,7 +2,7 @@
 
 **A unified agent index for discovery and interoperability across agent ecosystems.**
 
-NANDA Index provides a centralized registry for AI agents with capabilities-based search, MongoDB persistence, and optional cross-registry discovery. Register agents locally, search by skills and metadata, and optionally bridge to external registries like AGNTCY ADS—all through a single API.
+NANDA Index enables seamless discovery and interoperability across heterogeneous agent indices. Register agents locally, search by skills and metadata, and bridge to external indices like AGNTCY ADS—all through a single API.
 
 ## Features
 
@@ -16,8 +16,8 @@ NANDA Index provides a centralized registry for AI agents with capabilities-base
 
 ### Interoperability
 
-- **Batch Operations** (`agntcy-interop/`) - Export/import OASF records, skill taxonomy mapping, batch sync
-- **Switchboard** (`switchboard/`) - Real-time cross-registry discovery including AGNTCY ADS integration
+- **Batch Operations** ([`agntcy-interop/`](agntcy-interop/)) - Export/import OASF records, skill taxonomy mapping, batch sync. See [documentation](agntcy-interop/docs/)
+- **Switchboard** ([`switchboard/`](switchboard/)) - Real-time cross-index discovery including AGNTCY ADS integration. See [switchboard/README.md](switchboard/README.md)
 
 ## Architecture
 
@@ -123,13 +123,13 @@ python3 run_registry.py --public-url https://your-domain.com --port 6900
 
 ## Interoperability
 
-NANDA Index supports interoperability with external agent registries:
+NANDA Index supports interoperability with external agent indices:
 
 ### Batch Operations
-See `agntcy-interop/` for OASF export/import tools and skill taxonomy mapping.
+See [`agntcy-interop/`](agntcy-interop/) for OASF export/import tools and skill taxonomy mapping. Full documentation available in [`agntcy-interop/docs/`](agntcy-interop/docs/).
 
-### Switchboard (Cross-Registry Discovery)
-See [`switchboard/README.md`](switchboard/README.md) for AGNTCY ADS integration and live agent lookup across registries.
+### Switchboard (Cross-Index Discovery)
+See [`switchboard/README.md`](switchboard/README.md) for complete documentation on AGNTCY ADS integration and live agent lookup across indices.
 
 **Enable with:**
 ```bash
@@ -139,8 +139,8 @@ python3 registry.py
 ```
 
 When enabled, adds endpoints:
-- `GET /switchboard/lookup/<agent_id>` - Cross-registry agent lookup
-- `GET /switchboard/registries` - List connected registries
+- `GET /switchboard/lookup/<agent_id>` - Cross-index agent lookup
+- `GET /switchboard/registries` - List connected indices
 
 ## Security Notes
 

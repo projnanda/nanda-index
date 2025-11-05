@@ -56,6 +56,78 @@ NANDA Registry enables seamless discovery and interoperability across heterogene
    - Translates to NANDA format
 4. **Response**: Unified NANDA AgentFacts JSON
 
+### Schema Translation Example
+
+**Original OASF Agent (from AGNTCY ADS):**
+```json
+{
+  "name": "vision-agent",
+  "version": "v1.0.0",
+  "description": "Computer vision agent for image analysis",
+  "schema_version": "0.7.0",
+  "skills": [
+    {
+      "id": 201,
+      "name": "images_computer_vision/image_segmentation"
+    }
+  ],
+  "authors": ["NANDA Team"],
+  "created_at": "2025-11-05T00:00:00Z",
+  "locators": [
+    {
+      "type": "source_code",
+      "url": "https://github.com/nanda/vision-agent"
+    }
+  ]
+}
+```
+
+**Translated NANDA AgentFacts:**
+```json
+{
+  "agent_id": "@agntcy:vision-agent",
+  "registry_id": "agntcy",
+  "agent_name": "vision-agent",
+  "version": "v1.0.0",
+  "description": "Computer vision agent for image analysis",
+  "capabilities": [
+    {
+      "skill_id": "image_segmentation",
+      "category_name": "Images & Computer Vision",
+      "category_uid": 200,
+      "class_name": "Image Segmentation",
+      "class_uid": 201
+    }
+  ],
+  "agent_url": "https://github.com/nanda/vision-agent",
+  "api_url": "",
+  "last_updated": "2025-11-05T00:00:00Z",
+  "schema_version": "nanda-v1",
+  "source_schema": "oasf",
+  "oasf_schema_version": "0.7.0"
+}
+```
+
+**Field Mapping (OASF → NANDA):**
+```
+name                  → agent_name
+version               → version
+description           → description
+skills[].name         → capabilities[] (via SkillMapper taxonomy)
+locators[source_code] → agent_url
+locators[api]         → api_url
+created_at            → last_updated
+schema_version        → oasf_schema_version
+
+Generated fields:
+  agent_id: "@{registry_id}:{name}"
+  registry_id: "agntcy"
+  schema_version: "nanda-v1"
+  source_schema: "oasf"
+```
+
+**SkillMapper enrichment:** When taxonomy is available, hierarchical OASF skill paths like `images_computer_vision/image_segmentation` are mapped to structured capability objects with category metadata, UIDs, and human-readable names.
+
 ## Repository Structure
 
 ```

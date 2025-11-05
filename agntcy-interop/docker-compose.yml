@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    container_name: nanda_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: iot_agents_db
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  mongo_data:

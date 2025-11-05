@@ -1,0 +1,5 @@
+# Interop dev/test requirements
+# Reference root service dependencies, then add test tools.
+-r ../requirements.txt
+pytest
+jsonschema>=4.21.0

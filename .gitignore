@@ -3,3 +3,7 @@ jinoos/
 
 logs/
 __pycache__/
+.oasf-taxonomy/
+*.pyc
+.venv/
+.pytest_cache/

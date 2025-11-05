@@ -5,7 +5,7 @@ import importlib
 # Ensure module path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-export_mod = importlib.import_module('export_nanda_to_agntcy')
+export_mod = importlib.import_module('batch.export_nanda_to_agntcy')
 
 
 def test_parse_agent_id():

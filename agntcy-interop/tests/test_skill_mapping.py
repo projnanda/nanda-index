@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-mod = importlib.import_module('export_nanda_to_agntcy')
+mod = importlib.import_module('batch.export_nanda_to_agntcy')
 
 # Assume default schema dir relative path exists
 SCHEMA_DIR = Path(mod.DEFAULT_OASF_SCHEMA_DIR)

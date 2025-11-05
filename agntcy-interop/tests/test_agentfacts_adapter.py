@@ -4,7 +4,7 @@ import importlib.util
 import pathlib
 
 # Attempt dynamic import of agentfacts_adapter without relying on package name resolution
-_adapter_path = pathlib.Path(__file__).parent.parent / 'agentfacts_adapter.py'
+_adapter_path = pathlib.Path(__file__).parent.parent / 'adapters' / 'agentfacts_adapter.py'
 _spec = importlib.util.spec_from_file_location('agentfacts_adapter', str(_adapter_path))
 assert _spec is not None and _spec.loader is not None, 'Failed to create spec for agentfacts_adapter'
 _module = importlib.util.module_from_spec(_spec)

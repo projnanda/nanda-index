@@ -1,0 +1,23 @@
+{
+  "name": "vision-agent",
+  "version": "v1.0.0",
+  "description": "Computer vision agent for image analysis",
+  "schema_version": "0.7.0",
+  "skills": [
+    {
+      "id": 201,
+      "name": "images_computer_vision/image_segmentation"
+    }
+  ],
+  "authors": [
+    "NANDA Test Suite"
+  ],
+  "created_at": "2025-11-05T00:00:00Z",
+  "locators": [
+    {
+      "type": "source_code",
+      "url": "https://github.com/nanda/vision-agent"
+    }
+  ]
+}
+

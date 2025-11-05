@@ -753,6 +753,30 @@ def get_mcp_server_details():
         return jsonify({"error": f"Error retrieving MCP server details: {str(e)}"}), 500
 
 
+# ---------------- Federation Layer (Optional) -----------------
+ENABLE_FEDERATION = os.getenv('ENABLE_FEDERATION', 'false').lower() == 'true'
+
+if ENABLE_FEDERATION:
+    try:
+        from federation.federation_routes import register_federation_routes
+        register_federation_routes(app)
+        print("[registry] ✅ Federation layer enabled")
+        print("[registry]    Environment variables:")
+        print(f"[registry]    - AGNTCY_ADS_URL: {os.getenv('AGNTCY_ADS_URL', 'not set')}")
+        print(f"[registry]    - OASF_SCHEMA_DIR: {os.getenv('OASF_SCHEMA_DIR', 'auto-detect')}")
+    except ImportError as e:
+        print(f"[registry] ⚠️  Federation disabled: {e}")
+        print(f"[registry]    To enable: pip install agntcy-dir-sdk protobuf")
+    except Exception as e:
+        print(f"[registry] ⚠️  Federation initialization failed: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print("[registry] Federation layer disabled (set ENABLE_FEDERATION=true to enable)")
+
+# -------------------------------------------------------------------
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', DEFAULT_PORT))
     cert_dir = os.environ.get('CERT_DIR')

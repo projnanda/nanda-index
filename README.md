@@ -1,14 +1,30 @@
 # NANDA Registry Service
 
-A registry service for managing and allocating NANDA agents. This service handles agent registration, allocation, and client-agent mapping.
+A comprehensive registry service for managing and allocating NANDA agents with federated multi-registry support. This service handles agent registration, allocation, client-agent mapping, and cross-registry agent discovery.
 
 ## Features
 
+### Core Registry
 - Agent registration and management
 - Client-agent allocation
 - SSL certificate management
 - MongoDB integration for persistence
 - Automatic certificate renewal
+- Extended search and status endpoints
+
+### Batch Interoperability (`agntcy-interop/`)
+- Export NANDA agents to OASF (Open Agent Schema Format)
+- Import OASF records into NANDA registry
+- Skill taxonomy mapping
+- Batch synchronization with external registries
+
+### Federation Layer (Optional)
+- **Real-time cross-registry agent discovery**
+- **`@agntcy:agent-name` routing to external registries**
+- **Live queries to AGNTCY Agent Directory Service (ADS)**
+- **Pluggable adapter architecture** for multiple registries
+- **Automatic schema translation** (OASF ↔ NANDA)
+- **Skill taxonomy integration** for semantic mapping
 
 ## Prerequisites
 
@@ -88,20 +104,156 @@ If port 80 is in use, the service will attempt to:
 
 ## API Endpoints
 
-- `/register` - Register a new agent
-- `/lookup/<id>` - Lookup agent by ID
-- `/api/allocate` - Allocate an agent to a client
-- `/list` - List all registered agents
-- `/status/<agent_id>` - Get agent status
-- `/clients` - List all clients
+### Core Endpoints
+- `POST /register` - Register a new agent
+- `GET /lookup/<id>` - Lookup agent by ID
+- `POST /api/allocate` - Allocate an agent to a client
+- `GET /list` - List all registered agents
+- `GET /status/<agent_id>` - Get agent status
+- `GET /clients` - List all clients
+
+### Extended Endpoints
+- `GET /search` - Search agents by query, capabilities, tags
+- `GET /agents/<agent_id>` - Get detailed agent information
+- `DELETE /agents/<agent_id>` - Remove an agent
+- `PUT /agents/<agent_id>/status` - Update agent status
+- `GET /health` - Health check
+- `GET /stats` - Registry statistics
+- `GET /mcp_servers` - List MCP servers
+- `GET /skills/map?capability=<text>` - Map capability to skill taxonomy
+
+### Federation Endpoints (when `ENABLE_FEDERATION=true`)
+- `GET /federation/lookup/<agent_id>` - Federated agent lookup
+  - Example: `/federation/lookup/@agntcy:helper-agent`
+  - Example: `/federation/lookup/financial-analyzer` (local registry)
+- `GET /federation/registries` - List all connected registries
 
 ## Environment Variables
 
+### Core Configuration
 - `MONGODB_URI`: MongoDB connection string
-
-Optional
 - `PORT`: Registry service port (default: 6900)
 - `CERT_DIR`: Directory for SSL certificates (default: /root/certificates)
+
+### Federation Configuration (Optional)
+- `ENABLE_FEDERATION`: Enable federation layer (`true` or `false`, default: `false`)
+- `AGNTCY_ADS_URL`: AGNTCY ADS server address (e.g., `localhost:8888`)
+- `DIRCTL_PATH`: Path to dirctl binary (default: `/opt/homebrew/bin/dirctl`)
+- `OASF_SCHEMA_DIR`: Path to OASF schema directory (default: auto-detect)
+- `REGISTRY_URL`: Local registry URL for federation routing (default: `http://localhost:6900`)
+
+## Federation Usage
+
+### Enabling Federation
+
+Federation is **disabled by default**. To enable:
+
+```bash
+export ENABLE_FEDERATION=true
+export AGNTCY_ADS_URL=localhost:8888
+python run_registry.py --public-url https://your-domain.com
+```
+
+### Federation Dependencies
+
+Install additional dependencies for federation:
+
+```bash
+pip install httpx>=0.24.0
+pip install agntcy-dir-sdk>=0.1.0
+pip install protobuf>=4.0.0
+```
+
+Or uncomment the federation dependencies in `requirements.txt` and run:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Agent Lookup with Federation
+
+Once enabled, you can query agents from multiple registries:
+
+**Query local NANDA agent:**
+```bash
+curl http://localhost:6900/federation/lookup/financial-analyzer
+```
+
+**Query AGNTCY agent:**
+```bash
+curl http://localhost:6900/federation/lookup/@agntcy:helper-agent
+```
+
+**List all connected registries:**
+```bash
+curl http://localhost:6900/federation/registries
+```
+
+### Setting up AGNTCY ADS
+
+To use AGNTCY federation, you need a running AGNTCY ADS instance:
+
+```bash
+# Install dirctl (AGNTCY CLI)
+brew install agntcy/tap/dirctl  # macOS
+# or download from https://github.com/agntcy/agntcy
+
+# Start ADS server
+dirctl start
+
+# Push an agent to ADS
+dirctl push agent-record.json
+
+# Verify ADS is running
+curl http://localhost:8888/health
+```
+
+### Architecture with Federation
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               NANDA Registry (Port 6900)                     │
+│  ┌────────────────┐  ┌──────────────────────────────────┐  │
+│  │  Core Registry │  │  Federation Layer (Optional)     │  │
+│  │  - /register   │  │  - /federation/lookup/<id>       │  │
+│  │  - /lookup     │  │  - /federation/registries        │  │
+│  │  - /allocate   │  │  - Adapters: AGNTCY, local       │  │
+│  └────────────────┘  └──────────────────────────────────┘  │
+└────────────┬────────────────────────┬───────────────────────┘
+             │                        │
+      MongoDB (persist)        AGNTCY ADS (gRPC)
+                                  localhost:8888
+```
+
+### Data Flow
+
+1. **Client** sends lookup: `GET /federation/lookup/@agntcy:helper-agent`
+2. **Federation Router** parses identifier: `@agntcy:helper-agent`
+3. **AGNTCY Adapter**:
+   - Queries ADS via gRPC SDK
+   - Retrieves OASF record
+   - Maps skills using taxonomy
+   - Translates to NANDA format
+4. **Response**: Unified NANDA AgentFacts JSON
+
+### Example Response
+
+```json
+{
+  "agent_id": "@agntcy:helper-agent",
+  "registry_id": "agntcy",
+  "agent_name": "helper-agent",
+  "version": "v1.0.0",
+  "description": "Helper agent with image segmentation",
+  "capabilities": ["image_segmentation"],
+  "agent_url": "https://github.com/agntcy/oasf/blob/main/record",
+  "api_url": "",
+  "last_updated": "2025-08-11T16:20:37.159072Z",
+  "schema_version": "nanda-v1",
+  "source_schema": "oasf",
+  "oasf_schema_version": "0.7.0"
+}
+```
 
 ## Troubleshooting
 

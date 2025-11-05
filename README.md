@@ -60,8 +60,7 @@ A comprehensive registry service for managing and allocating NANDA agents with f
 nanda-index-federation/
 ├── registry.py                    # Core registry service with federation support
 ├── run_registry.py                # Production launcher with SSL management
-├── pyproject.toml                 # Modern dependency management (uv)
-├── requirements.txt               # Legacy dependency list (deprecated)
+├── pyproject.toml                 # Dependency management (uv)
 │
 ├── federation/                    # Federation layer (optional)
 │   ├── adapters/
@@ -118,14 +117,9 @@ git clone https://github.com/projnanda/nanda-index.git
 cd nanda-index
 ```
 
-2. Install Python dependencies using `uv`:
+2. Install dependencies using `uv`:
 ```bash
 uv sync
-```
-
-Or using pip:
-```bash
-pip install -r requirements.txt
 ```
 
 3. Set up MongoDB and configure environment:

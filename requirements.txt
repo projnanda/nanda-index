@@ -1,8 +1,0 @@
-# ⚠️ DEPRECATED: Use pyproject.toml with uv instead
-#
-# This file is kept for backwards compatibility only.
-# 
-# To install dependencies, use:
-#   uv sync
-#
-# See pyproject.toml for the authoritative dependency list.

@@ -67,19 +67,20 @@ class AGNTCYAdapter(BaseRegistryAdapter):
         # Initialize SkillMapper for taxonomy mapping
         self.skill_mapper = None
         if SKILL_MAPPER_AVAILABLE:
+            # Clone taxonomy inside the project for self-contained setup
+            default_schema_path = Path(__file__).parent.parent.parent / ".oasf-taxonomy" / "schema"
             schema_dir = oasf_schema_dir or os.environ.get(
                 "OASF_SCHEMA_DIR", 
-                str(Path(__file__).parent.parent.parent.parent / "agntcy" / "oasf" / "schema")
+                str(default_schema_path)
             )
             schema_path = Path(schema_dir)
             if schema_path.exists():
                 try:
                     self.skill_mapper = SkillMapper(schema_path)
-                    print(f"✅ SkillMapper initialized with taxonomy from {schema_path}")
+                    print(f"✅ SkillMapper initialized with taxonomy")
+                    print(f"   → {len(self.skill_mapper.leaf_skills)} skills loaded")
                 except Exception as e:
                     print(f"[WARN] SkillMapper initialization failed: {e}")
-            else:
-                print(f"[WARN] OASF schema not found at {schema_path}. Skill mapping disabled.")
     
     async def query_agent(self, agent_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -187,12 +188,12 @@ class AGNTCYAdapter(BaseRegistryAdapter):
             "oasf_schema_version": oasf_data.get("schema_version", "unknown")
         }
     
-    def _map_skills_to_capabilities(self, skills: List[Dict[str, Any]]) -> List[str]:
+    def _map_skills_to_capabilities(self, skills: List[Dict[str, Any]]) -> List[Any]:
         """
         Map OASF skills to NANDA capabilities using taxonomy.
         
-        If SkillMapper is available, performs taxonomy-based mapping.
-        Otherwise, simple name extraction.
+        If SkillMapper is available, returns full taxonomy dicts.
+        Otherwise, returns simple skill name strings.
         """
         capabilities = []
         seen = set()
@@ -209,10 +210,10 @@ class AGNTCYAdapter(BaseRegistryAdapter):
                 mapped = self.skill_mapper.map_capability(leaf_name)
                 
                 if mapped:
-                    # Use the mapped skill info
+                    # Return full taxonomy dict
                     cap_id = mapped.get('skill_id')
                     if cap_id and cap_id not in seen:
-                        capabilities.append(cap_id)
+                        capabilities.append(mapped)  # ← Return full dict!
                         seen.add(cap_id)
                         continue
             

@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"  # optional, for local dev access
+    volumes:
+      - index_data:/data/db
+
+  nanda-index:
+    build: ../..
+    container_name: nanda-index
+    depends_on:
+      - mongo
+    environment:
+      - PORT=6900
+      - CERT_DIR=/certs
+      - MONGODB_URI=mongodb://mongo:27017/nanda
+    ports:
+      - "6900:6900"
+    volumes:
+      - ./certs:/certs:ro
+    restart: unless-stopped
+    
+volumes:
+  index_data:

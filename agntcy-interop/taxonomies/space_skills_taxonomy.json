@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:astrocity:space:skills/space_industry_taxonomy.json",
+  "x-version": "1.0.0",
+  "x-contributor": "Astrocity Foundation - Space Industry Standards Initiative",
+  "x-license": "MIT",
+  "x-integration": "NANDA Index /skills/map endpoint",
+  "title": "Space Industry Agent Skills Taxonomy",
+  "description": "Hierarchical skill classification for space industry AI agents. Enables discovery and interoperability via NANDA Index. Based on regulatory categories and industry-standard terminology.",
+
+  "categories": [
+    {
+      "category_name": "Space Regulatory Compliance",
+      "category_uid": 100,
+      "description": "Skills related to space industry regulatory compliance and licensing",
+      "skills": [
+        {
+          "skill_id": "fcc_satellite_licensing",
+          "class_name": "FCC Satellite Licensing",
+          "class_uid": 1001,
+          "caption": "FCC Form 312 satellite license application preparation, validation, and filing per 47 CFR Part 25",
+          "regulatory_basis": "47 CFR Part 25",
+          "keywords": ["FCC", "Form 312", "satellite license", "space station", "earth station", "IBFS"]
+        },
+        {
+          "skill_id": "orbital_debris_assessment",
+          "class_name": "Orbital Debris Mitigation",
+          "class_uid": 1002,
+          "caption": "Orbital debris mitigation plan analysis and compliance verification per FCC 25-year rule",
+          "regulatory_basis": "47 CFR 25.114(d)(14)",
+          "keywords": ["orbital debris", "end-of-life disposal", "deorbit", "collision avoidance", "space sustainability"]
+        },
+        {
+          "skill_id": "itu_spectrum_coordination",
+          "class_name": "ITU Spectrum Coordination",
+          "class_uid": 1003,
+          "caption": "ITU frequency coordination, API filing, and MIFR registration per ITU Radio Regulations",
+          "regulatory_basis": "ITU Radio Regulations Articles 9 and 11",
+          "keywords": ["ITU", "spectrum", "frequency coordination", "MIFR", "API", "interference"]
+        },
+        {
+          "skill_id": "faa_launch_licensing",
+          "class_name": "FAA Launch Licensing",
+          "class_uid": 1004,
+          "caption": "FAA/AST launch and reentry license application preparation per 14 CFR Part 450",
+          "regulatory_basis": "14 CFR Part 450",
+          "keywords": ["FAA", "launch license", "AST", "flight safety", "risk analysis", "NEPA"]
+        },
+        {
+          "skill_id": "noaa_remote_sensing_licensing",
+          "class_name": "NOAA Remote Sensing Licensing",
+          "class_uid": 1005,
+          "caption": "NOAA commercial remote sensing license application and compliance per 15 CFR Part 960",
+          "regulatory_basis": "15 CFR Part 960",
+          "keywords": ["NOAA", "remote sensing", "imaging", "shutter control", "CRSRA"]
+        },
+        {
+          "skill_id": "export_control_compliance",
+          "class_name": "Export Control & ITAR",
+          "class_uid": 1006,
+          "caption": "DDTC ITAR registration, commodity jurisdiction, export licenses, and TAA preparation",
+          "regulatory_basis": "22 CFR 120-130 (ITAR), 15 CFR 730-774 (EAR)",
+          "keywords": ["ITAR", "export control", "DDTC", "TAA", "deemed export", "USML", "EAR"]
+        }
+      ]
+    },
+    {
+      "category_name": "Satellite Operations",
+      "category_uid": 200,
+      "description": "Skills related to satellite command, control, and operations",
+      "skills": [
+        {
+          "skill_id": "satellite_health_monitoring",
+          "class_name": "Satellite Health Monitoring",
+          "class_uid": 2001,
+          "caption": "Real-time satellite telemetry monitoring, anomaly detection, and health assessment",
+          "keywords": ["telemetry", "satellite health", "anomaly detection", "monitoring", "housekeeping"]
+        },
+        {
+          "skill_id": "command_control",
+          "class_name": "Command & Control",
+          "class_uid": 2002,
+          "caption": "Satellite command generation, uplink scheduling, and operations planning",
+          "keywords": ["command", "control", "uplink", "operations", "mission planning"]
+        },
+        {
+          "skill_id": "orbit_determination",
+          "class_name": "Orbit Determination",
+          "class_uid": 2003,
+          "caption": "Orbital state estimation, propagation, and tracking data analysis",
+          "keywords": ["orbit", "TLE", "ephemeris", "tracking", "propagation"]
+        },
+        {
+          "skill_id": "collision_avoidance",
+          "class_name": "Collision Avoidance",
+          "class_uid": 2004,
+          "caption": "Conjunction analysis, risk assessment, and maneuver planning for collision avoidance",
+          "keywords": ["conjunction", "collision", "CDM", "maneuver", "space traffic"]
+        }
+      ]
+    },
+    {
+      "category_name": "Spectrum Management",
+      "category_uid": 300,
+      "description": "Skills related to radio frequency spectrum planning and management",
+      "skills": [
+        {
+          "skill_id": "rf_link_analysis",
+          "class_name": "RF Link Analysis",
+          "class_uid": 3001,
+          "caption": "Radio frequency link budget analysis, interference assessment, and spectrum planning",
+          "keywords": ["RF", "link budget", "EIRP", "G/T", "C/N0", "interference"]
+        },
+        {
+          "skill_id": "frequency_assignment",
+          "class_name": "Frequency Assignment",
+          "class_uid": 3002,
+          "caption": "Frequency band selection, assignment planning, and coordination with regulatory bodies",
+          "keywords": ["frequency", "band allocation", "uplink", "downlink", "spectrum"]
+        },
+        {
+          "skill_id": "interference_analysis",
+          "class_name": "Interference Analysis",
+          "class_uid": 3003,
+          "caption": "Radio frequency interference detection, analysis, and mitigation strategies",
+          "keywords": ["RFI", "interference", "mitigation", "EPFD", "coordination"]
+        }
+      ]
+    },
+    {
+      "category_name": "Mission Planning",
+      "category_uid": 400,
+      "description": "Skills related to space mission design and planning",
+      "skills": [
+        {
+          "skill_id": "launch_planning",
+          "class_name": "Launch Planning",
+          "class_uid": 4001,
+          "caption": "Launch vehicle selection, trajectory design, and launch window analysis",
+          "keywords": ["launch", "trajectory", "launch vehicle", "rideshare", "deploy"]
+        },
+        {
+          "skill_id": "mission_design",
+          "class_name": "Mission Design",
+          "class_uid": 4002,
+          "caption": "Space mission architecture design, requirements analysis, and feasibility assessment",
+          "keywords": ["mission", "requirements", "architecture", "feasibility", "concept"]
+        },
+        {
+          "skill_id": "payload_integration",
+          "class_name": "Payload Integration",
+          "class_uid": 4003,
+          "caption": "Payload requirements analysis, integration planning, and interface coordination",
+          "keywords": ["payload", "integration", "interface", "requirements", "testing"]
+        }
+      ]
+    },
+    {
+      "category_name": "Ground Systems",
+      "category_uid": 500,
+      "description": "Skills related to ground station operations and data processing",
+      "skills": [
+        {
+          "skill_id": "ground_station_scheduling",
+          "class_name": "Ground Station Scheduling",
+          "class_uid": 5001,
+          "caption": "Ground station contact scheduling, pass prediction, and resource allocation",
+          "keywords": ["ground station", "scheduling", "contacts", "passes", "visibility"]
+        },
+        {
+          "skill_id": "telemetry_processing",
+          "class_name": "Telemetry Processing",
+          "class_uid": 5002,
+          "caption": "Satellite telemetry data processing, decoding, and archival",
+          "keywords": ["telemetry", "TM/TC", "data processing", "decom", "archival"]
+        },
+        {
+          "skill_id": "data_downlink_management",
+          "class_name": "Data Downlink Management",
+          "class_uid": 5003,
+          "caption": "Payload data downlink planning, bandwidth optimization, and delivery coordination",
+          "keywords": ["downlink", "data delivery", "bandwidth", "latency", "throughput"]
+        }
+      ]
+    },
+    {
+      "category_name": "Space Insurance & Finance",
+      "category_uid": 600,
+      "description": "Skills related to space insurance, financial analysis, and risk assessment",
+      "skills": [
+        {
+          "skill_id": "launch_insurance",
+          "class_name": "Launch Insurance",
+          "class_uid": 6001,
+          "caption": "Launch insurance policy analysis, risk assessment, and claims management",
+          "keywords": ["insurance", "launch risk", "coverage", "underwriting", "claims"]
+        },
+        {
+          "skill_id": "mission_risk_analysis",
+          "class_name": "Mission Risk Analysis",
+          "class_uid": 6002,
+          "caption": "Space mission risk assessment, probability analysis, and mitigation planning",
+          "keywords": ["risk", "probability", "reliability", "fault tree", "FMEA"]
+        }
+      ]
+    }
+  ],
+
+  "skill_discovery_heuristics": {
+    "description": "Mapping rules for discovering space agents by keywords and capabilities",
+    "rules": [
+      {
+        "pattern": "fcc.*form.*312|satellite.*licens.*fcc",
+        "maps_to": ["fcc_satellite_licensing"]
+      },
+      {
+        "pattern": "orbital.*debris|end.*of.*life|deorbit",
+        "maps_to": ["orbital_debris_assessment"]
+      },
+      {
+        "pattern": "itu.*coordination|spectrum.*coordination|mifr",
+        "maps_to": ["itu_spectrum_coordination"]
+      },
+      {
+        "pattern": "faa.*launch|launch.*licens.*faa|14.*cfr.*450",
+        "maps_to": ["faa_launch_licensing"]
+      },
+      {
+        "pattern": "noaa.*remote.*sensing|commercial.*imaging",
+        "maps_to": ["noaa_remote_sensing_licensing"]
+      },
+      {
+        "pattern": "itar|export.*control|ddtc|technical.*assistance.*agreement",
+        "maps_to": ["export_control_compliance"]
+      },
+      {
+        "pattern": "satellite.*health|telemetry.*monitor",
+        "maps_to": ["satellite_health_monitoring"]
+      },
+      {
+        "pattern": "collision.*avoid|conjunction.*analysis|cdm",
+        "maps_to": ["collision_avoidance"]
+      },
+      {
+        "pattern": "rf.*link|link.*budget|interference",
+        "maps_to": ["rf_link_analysis", "interference_analysis"]
+      },
+      {
+        "pattern": "ground.*station.*schedul",
+        "maps_to": ["ground_station_scheduling"]
+      }
+    ]
+  },
+
+  "integration_notes": {
+    "nanda_index": "These skills extend NANDA Index /skills/map endpoint with space industry categories",
+    "agent_registration": "Agents should include relevant skill_ids in their capability declarations",
+    "discovery": "Enables semantic search and capability-based agent discovery for space operations"
+  }
+}

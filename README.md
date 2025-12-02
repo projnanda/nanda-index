@@ -148,3 +148,6 @@ When enabled, adds endpoints:
 - Use HTTPS for production deployments
 - Certificates are stored with appropriate permissions (600 for private key)
 - The service requires root access for SSL certificate management
+
+## License
+MIT License - see [LICENSE](LICENSE) file for details.
